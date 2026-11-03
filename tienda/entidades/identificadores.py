@@ -2,4 +2,7 @@ import uuid
 
 
 def generar_id():
-    return str(uuid.uuid4())
+    codigoAleatorio=str(uuid.uuid4())[:6]
+   
+    
+    return codigoAleatorio

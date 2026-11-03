@@ -7,7 +7,7 @@ class Pedido(models.Model):
     idPedido = models.CharField(
         primary_key=True,
         max_length=50,
-        default=generar_id,
+        
     )
     numeroPedido = models.CharField(max_length=50, unique=True)
     usuarioId = models.ForeignKey(

@@ -7,7 +7,7 @@ class Pago(models.Model):
     idPago = models.CharField(
         primary_key=True,
         max_length=50,
-        default=generar_id,
+        
     )
     pedidoId = models.ForeignKey(
         "tienda.Pedido",

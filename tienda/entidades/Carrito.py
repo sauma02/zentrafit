@@ -7,7 +7,7 @@ class Carrito(models.Model):
     idCarrito = models.CharField(
         primary_key=True,
         max_length=50,
-        default=generar_id,
+        
     )
     usuarioId = models.ForeignKey(
         "tienda.Usuario",

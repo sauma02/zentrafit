@@ -7,7 +7,7 @@ class Usuario(models.Model):
     id = models.CharField(
         primary_key=True,
         max_length=50,
-        default=generar_id,
+        
     )
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)

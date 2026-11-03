@@ -7,7 +7,7 @@ class Categoria(models.Model):
     categoriaId = models.CharField(
         primary_key=True,
         max_length=50,
-        default=generar_id,
+        
     )
     nombre = models.CharField(max_length=50)
     descripcion = models.TextField()

@@ -7,7 +7,7 @@ class VarianteProducto(models.Model):
     varianteId = models.CharField(
         primary_key=True,
         max_length=50,
-        default=generar_id,
+        
     )
     idProducto = models.ForeignKey(
         "tienda.Producto",

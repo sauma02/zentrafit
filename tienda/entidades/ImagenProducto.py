@@ -7,7 +7,7 @@ class ImagenProducto(models.Model):
     idImagen = models.CharField(
         primary_key=True,
         max_length=50,
-        default=generar_id,
+        
     )
     idProducto = models.ForeignKey(
         "tienda.Producto",

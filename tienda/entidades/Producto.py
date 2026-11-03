@@ -7,7 +7,7 @@ class Producto(models.Model):
     idProducto = models.CharField(
         primary_key=True,
         max_length=50,
-        default=generar_id,
+        
     )
     categoriaId = models.ForeignKey(
         "tienda.Categoria",

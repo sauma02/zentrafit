@@ -7,7 +7,7 @@ class DetallePedido(models.Model):
     idDetalle = models.CharField(
         primary_key=True,
         max_length=50,
-        default=generar_id,
+        
     )
     idPedido = models.ForeignKey(
         "tienda.Pedido",
