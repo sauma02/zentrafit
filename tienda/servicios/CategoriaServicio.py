@@ -12,12 +12,11 @@ from django.core.exceptions import (
 )
 
 class CategoriaServicio():
-
     @staticmethod
     def listaCategorias():
         try:
             listaCategorias = Categoria.objects.all()
-            if not listaCategorias.exists() == 0:
+            if not listaCategorias.exists():
                 raise ValidationError("La lista esta vacia")
             return listaCategorias
         except IntegrityError as e:
