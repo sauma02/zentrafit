@@ -1,6 +1,6 @@
-from entidades.Usuario import Usuario
+from tienda.entidades.Usuario import Usuario
 from django.db import IntegrityError, DataError, OperationalError
-from entidades.identificadores import generar_id
+from tienda.entidades.identificadores import generar_id
 from django.core.exceptions import (
     NON_FIELD_ERRORS,
     FieldDoesNotExist,
@@ -10,7 +10,7 @@ from django.core.exceptions import (
     ObjectNotUpdated,
     ValidationError,
 )
-class ServicioUsuario():
+class UsuarioServicio():
 
     @staticmethod
     def listarUsuarios():
@@ -24,7 +24,7 @@ class ServicioUsuario():
     @staticmethod
     def buscarUsuario(usuarioId):
         try:
-            usuario=Usuario.objects.filter(id=usuarioId)
+            usuario=Usuario.objects.get(id=usuarioId)
             if not usuario.exists():
                 raise ValidationError("El usuario que trata de buscar no existe")
             return usuario

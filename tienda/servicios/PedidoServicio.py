@@ -1,12 +1,12 @@
-from entidades.Pedido import Pedido
-from entidades.Carrito import Carrito
-from entidades.VarianteProducto import VarianteProducto
-from entidades.identificadores import generar_id
-from servicios.ProductoServicio import ProductoServicio
-from entidades.DetallePedido import DetallePedido
-from servicios.CarritoServicio import CarritoServicio
+from tienda.entidades.Pedido import Pedido
+from tienda.entidades.Carrito import Carrito
+from tienda.entidades.VarianteProducto import VarianteProducto
+from tienda.entidades.identificadores import generar_id
+from tienda.servicios.ProductoServicio import ProductoServicio
+from tienda.entidades.DetallePedido import DetallePedido
+from tienda.servicios.CarritoServicio import CarritoServicio
 from datetime import datetime as Date
-from entidades.MovimientoInventario import MovimientoInventario
+from tienda.entidades.MovimientoInventario import MovimientoInventario
 from django.db import transaction 
 from django.db import IntegrityError, DataError, OperationalError
 from django.core.exceptions import (

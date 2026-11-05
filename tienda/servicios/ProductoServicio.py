@@ -1,7 +1,7 @@
-from entidades.Producto import Producto
-from entidades.VarianteProducto import VarianteProducto
-from entidades.Categoria import Categoria
-from entidades.identificadores import generar_id
+from tienda.entidades.Producto import Producto
+from tienda.entidades.VarianteProducto import VarianteProducto
+from tienda.entidades.Categoria import Categoria
+from tienda.entidades.identificadores import generar_id
 from django.db import IntegrityError, DataError, OperationalError
 from django.core.exceptions import (
     NON_FIELD_ERRORS,
@@ -52,7 +52,7 @@ class ProductoServicio():
     @staticmethod
     def listarVarianteEspecifica(varianteId):
          try:
-              varianteAEncontrar = VarianteProducto.objects.filter(varianteId=varianteId)
+              varianteAEncontrar = VarianteProducto.objects.get(varianteId=varianteId)
               return varianteAEncontrar
          except ObjectDoesNotExist as e:
               print(f"Error, variante no encontrada o no existe: {e}")
@@ -151,7 +151,7 @@ class ProductoServicio():
     @staticmethod
     def eliminarProducto(productoId):
         try:
-            productoEliminado=Producto.objects.filter(idProducto=productoId)
+            productoEliminado=Producto.objects.get(idProducto=productoId)
             productoEliminado.delete()
             return "Producto eliminado con exito"
         except ObjectDoesNotExist as e:
@@ -161,7 +161,7 @@ class ProductoServicio():
     @staticmethod
     def encontrarProductoEspecifico(productoId):
         try:
-            productoEncontrado=Producto.objects.filter(idProduto=productoId)
+            productoEncontrado=Producto.objects.get(idProducto=productoId)
             return productoEncontrado
         except ObjectDoesNotExist as e:
             print(f"Error, producto no encontrado o no existe: {e}")

@@ -1,5 +1,5 @@
-from entidades.Categoria import Categoria
-from entidades.identificadores import generar_id
+from tienda.entidades.Categoria import Categoria
+from tienda.entidades.identificadores import generar_id
 from django.db import IntegrityError, DataError, OperationalError
 from django.core.exceptions import (
     NON_FIELD_ERRORS,
@@ -38,7 +38,7 @@ class CategoriaServicio():
     @staticmethod
     def actualizarCategoria(categoriaId, nombre, descripcion, activo):
         try:
-            categoriaActualizada=Categoria.objects.filter(categoriaId=categoriaId)
+            categoriaActualizada=Categoria.objects.get(categoriaId=categoriaId)
             categoriaActualizada.nombre = nombre
             categoriaActualizada.descripcion= descripcion
             categoriaActualizada.activo=activo
@@ -51,7 +51,7 @@ class CategoriaServicio():
     @staticmethod
     def eliminarCategoria(categoriaId):
         try:
-            categoriaEliminada=Categoria.objects.filter(categoriaId=categoriaId)
+            categoriaEliminada=Categoria.objects.get(categoriaId=categoriaId)
             categoriaEliminada.delete()
             print("Producto eliminado con exito")
         except ObjectDoesNotExist as e:

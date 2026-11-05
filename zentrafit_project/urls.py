@@ -17,7 +17,10 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
+from tienda import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path('', views.vistaCatalogo, name='catalogo'),
+    path('carrito/add/<str:varianteId>/', views.agregarAlCarritoVista, name='agregar_carrito'),
 ]

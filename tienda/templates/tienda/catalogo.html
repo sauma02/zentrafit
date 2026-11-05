@@ -1,0 +1,78 @@
+<!-- tienda/templates/tienda/catalogo.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ titulo_pagina }}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { background: #111; color: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; text-align: center; }
+        .messages { padding: 15px; margin-bottom: 20px; border-radius: 5px; background-color: #d4edda; color: #155724; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        .marca { color: #ff6b6b; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+        .btn { display: inline-block; background: #22c55e; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; width: 100%; text-align: center;}
+        .btn:hover { background: #16a34a; }
+        .variante-box { background: #f1f5f9; padding: 10px; margin-top: 10px; border-radius: 5px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏋️‍♂️ ZentraFit — Tienda Virtual</h1>
+            <p>Rendimiento Físico y Bienestar</p>
+        </div>
+
+        <!-- Notificaciones de éxito o error al accionar servicios -->
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+        <h2>Carrito de Compras:</h2>
+        {% if carrito %}
+            <ul>
+                {% for item in carrito %}
+                    <li>{{ item.variante.sku }} - {{ item.variante.sabor }} - Cantidad: {{ item.cantidad }} - Precio: ${{ item.variante.precio }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>El carrito está vacío.</p>
+        {% endif %}
+
+        <h2>Catálogo de Suplementos Disponibles:</h2>
+        <div class="grid">
+            {% for producto in productos %}
+                <div class="card">
+                    
+                    <span class="marca">{{ producto.marca }}</span>
+                    <h2>Categoria: {{ producto.categoriaId.nombre }}</h2>
+                    <h3>{{ producto.nombre }}</h3>
+                    <p>{{ producto.descripcion }}</p>
+                    
+                    <h4>Presentaciones:</h4>
+                    {% for variante in variantes %}
+                        <!-- Relacionamos la variante al producto actual mediante idProducto -->
+                        {% if variante.idProducto_id == producto.idProducto %}
+                            <div class="variante-box">
+                                <strong>SKU:</strong> {{ variante.sku }} <br>
+                                <strong>Sabor:</strong> {{ variante.sabor }} | <strong>Tamaño:</strong> {{ variante.tamano }} <br>
+                                <strong>Medida:</strong> {{ variante.unidadMedida }} <br>
+                                <span style="color:#059669; font-weight:bold;">${{ variante.precio }} Cop</span>
+                                
+                                <!-- Botón que dispara el servicio de Carrito -->
+                                <a href="{% url 'agregar_carrito' variante.varianteId %}" class="btn">🛒 Añadir</a>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% empty %}
+                <p>No hay suplementos deportivos en vitrina. Registra algunos en el panel de /admin.</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

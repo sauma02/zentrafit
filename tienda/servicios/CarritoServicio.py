@@ -1,10 +1,10 @@
-from entidades.Usuario import Usuario
-from entidades.Carrito import Carrito
-from datetime import Date
-from entidades.VarianteProducto import VarianteProducto
-from entidades.identificadores import generar_id
-from servicios.ProductoServicio import ProductoServicio
-from django.db import IntegrityError, DataError, OperationalError
+from tienda.entidades.Usuario import Usuario
+from tienda.entidades.Carrito import Carrito
+from datetime import date as Date
+from tienda.entidades.VarianteProducto import VarianteProducto
+from tienda.entidades.identificadores import generar_id
+from tienda.servicios.ProductoServicio import ProductoServicio
+from django.db import IntegrityError, DataError, OperationalError, transaction
 from django.core.exceptions import (
     NON_FIELD_ERRORS,
     FieldDoesNotExist,
@@ -19,29 +19,26 @@ from tienda.servicios import UsuarioServicio
 class CarritoServicio():
     
     @staticmethod
-    def listarCarrito(usuarioId, sesionId):
+    def listarCarrito(sesionId):
         try:
-            if usuarioId:
-                carrito=Carrito.objects.filter(usuarioId=usuarioId)
-            elif sesionId:
+            if sesionId:
                 carrito=Carrito.objects.filter(sesionId=sesionId)
             else:
                 raise ValidationError("Se requiere un ID de usuario o un ID de sesión para listar el carrito")
-            if not carrito.exists():
-                raise ValidationError("El carrito esta vacio")
             return carrito
         except ObjectDoesNotExist as e:
             print(f"Error, el objeto no existe: {e}")
         except IntegrityError as e:
             print(f"Error fatal(Listar carrito): {e}")
+    @transaction.atomic
     @staticmethod
-    def agregarItem(usuarioId, varianteId, cantidad, sesionId=None):
+    def agregarItem(usuarioId, varianteId, cantidad, sesionId):
         
         try:
             if cantidad <=0:
                 raise ValueError("La cantidad no puede ser 0")
             varianteProducto=ProductoServicio.listarVarianteEspecifica(varianteId)
-            if not varianteProducto.exists():
+            if not varianteProducto:
                 raise ValidationError("La variante de producto no existe")
             usuario = None
             if usuarioId is not None:
@@ -50,31 +47,33 @@ class CarritoServicio():
                 except ObjectDoesNotExist:
                     raise ValidationError("El usuario no existe")
             if usuario:
-                itemExistente=Carrito.objects.filter(usuario=usuario, varianteProducto=varianteProducto).first( )
+                itemExistente=Carrito.objects.get(usuario=usuario, varianteId=varianteProducto)
             else:
                 if not sesionId:
                     raise ValidationError("Se requiere un ID de sesión para usuarios no autenticados")
-                itemExistente=Carrito.objects.filter(usuarioId_isnull=True, sesionId=sesionId, varianteProducto=varianteProducto).first( )
+                itemExistente=Carrito.objects.get(usuarioId=usuarioId, sesionId=sesionId, varianteId=varianteProducto)
             if itemExistente:
                 itemExistente.cantidad += cantidad
                 itemExistente.actualizadoEn=Date.today()
                 itemExistente.save()
                 return itemExistente
             else:
-                idCombinado=f"CRT##{generar_id()}"
-                idCarrito=idCombinado
-                idSesionFinal = sesionId if sesionId else f"SES##{generar_id()}"
-                carrito=Carrito(
-                    id=idCarrito,
-                    usuario=usuario,
+                idCombinado = f"CRT##{generar_id()}"
+                idSesionFinal = sesionId if sesionId is not None else f"SES##{generar_id()}"
+                
+                # 🚀 USAMOS objects.create PARA INPACTAR LA BD DIRECTAMENTE EN UNA SOLA LÍNEA SQL
+                carrito_guardado = Carrito.objects.create(
+                    idCarrito=idCombinado,           # Revisa que en tu archivo de entidades se llame exactamente 'idCarrito'
+                    usuarioId=usuario,               # Debe apuntar al objeto Usuario o ser None
                     sesionId=idSesionFinal,
-                    varianteProducto=varianteProducto,
+                    varianteId=varianteProducto,     # Debe apuntar al objeto VarianteProducto extraído
                     cantidad=cantidad,
-                    creadoEn=Date.today(),
+                    fechaCreacion=Date.today(),
                     actualizadoEn=Date.today()
                 )
-                carrito.save()
-                return carrito
+                
+                print(f" Confirmación: ¡Carrito insertado en la Base de Datos con ID {idCombinado}!")
+                return carrito_guardado
 
 
             
