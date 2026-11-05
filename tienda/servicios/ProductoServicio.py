@@ -13,6 +13,8 @@ from django.core.exceptions import (
     ValidationError,
 )
 
+from tienda.entidades.ImagenProducto import ImagenProducto
+
 
 class ProductoServicio():
 
@@ -163,6 +165,21 @@ class ProductoServicio():
             return productoEncontrado
         except ObjectDoesNotExist as e:
             print(f"Error, producto no encontrado o no existe: {e}")
-        
-        
+    @staticmethod
+    def asosociarImagenes(productoId, rutaImagen, esPrincipal=False, ordenVisual=1):
+        try:
+             producto=ProductoServicio.encontrarProductoEspecifico(productoId)
+             if producto == None or not producto.exists():
+                raise ObjectDoesNotExist("Error, el objeto no existe")
+             idCombinado=f"IMG##{generar_id()}"
+             imagenId=idCombinado
+             imagen=ImagenProducto(idImagen=imagenId, idProducto=producto, archivo=rutaImagen, esPrincipal=esPrincipal, orden=ordenVisual)
+             imagen.full_clean()
+             imagen.save()
+        except ValidationError as e:
+             print(f"Error critico, uno o mas espacios estan vacios")
+        except IntegrityError as e:
+             print(f"Error fatal(Asociar imagen): {e}")
+        except ObjectDoesNotExist as e:
+             print(f"Error, producto no encontrado o no existe: {e}")
     
