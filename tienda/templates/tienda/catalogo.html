@@ -33,16 +33,39 @@
             </div>
         {% endif %}
         <h2>Carrito de Compras:</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Resumen del Carrito</h3>
+                <p>Aquí puedes ver los suplementos que has añadido a tu carrito de compras.</p>
         {% if carrito %}
-            <ul>
-                {% for item in carrito %}
-                    <li>{{ item.variante.sku }} - {{ item.variante.sabor }} - Cantidad: {{ item.cantidad }} - Precio: ${{ item.variante.precio }}</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>El carrito está vacío.</p>
-        {% endif %}
-
+    <h3>🛒 Tu Carrito de Compras:</h3>
+    <ul>
+        {% for item in carrito %}
+            <!-- Forzamos que cada ítem tenga su contenedor cerrado e independiente -->
+            <div class="variante-box" style="margin-bottom: 10px; padding: 10px; background: #fff; border-radius: 5px;">
+                <li>
+                    <strong>Producto:</strong> {{ item.varianteId.idProducto.nombre }} <br>
+                    <strong>Detalles:</strong> {{item.varianteId.idProducto.descripcion}} <br>
+                    <strong>SKU:</strong> {{ item.varianteId.sku }} <br>
+                    <strong>Sabor:</strong> {{ item.varianteId.sabor }} <br>
+                    <strong>Cantidad:</strong> {{ item.cantidad }} ud(s). | <br>
+                    <strong>Precio Unitario:</strong> ${{ item.varianteId.precio }} Cop <br>
+                </li>
+            </div>
+        {% endfor %}
+    </ul>
+    
+   
+    <div style="margin-top: 15px; border-top: 2px solid #22c55e; padding-top: 10px;">
+        <span style="color:#059669; font-weight:bold; font-size: 18px;">
+            Subtotal Estimado: ${{ subTotalCarrito }} Cop
+        </span>
+    </div>
+{% else %}
+    <p>Tu carrito está esperando por tus primeros suplementos deportivos.</p>
+{% endif %}
+            </div>
+        </div>
         <h2>Catálogo de Suplementos Disponibles:</h2>
         <div class="grid">
             {% for producto in productos %}
