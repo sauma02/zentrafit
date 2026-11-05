@@ -18,9 +18,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from tienda import views
+from tienda import api_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/csrf/", api_views.csrf_token, name="api_csrf"),
+    path("api/catalog/", api_views.catalog_api, name="api_catalog"),
+    path("api/cart/", api_views.cart_api, name="api_cart"),
+    path("api/orders/", api_views.order_api, name="api_orders"),
     path('', views.vistaCatalogo, name='catalogo'),
     path('carrito/add/<str:varianteId>/', views.agregarAlCarritoVista, name='agregar_carrito'),
 ]

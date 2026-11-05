@@ -20,7 +20,6 @@ class Carrito(models.Model):
     fechaCreacion = models.DateTimeField(auto_now_add=True)
     sesionId = models.CharField(
         max_length=50,
-        unique=True,
         null=True,
         blank=True,
     )
