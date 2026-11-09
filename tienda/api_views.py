@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from django.db import transaction
 from django.http import JsonResponse
+from django.middleware.csrf import get_token
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
@@ -102,7 +103,7 @@ def _serialize_cart(cart_items):
 def csrf_token(request):
     if request.method == "OPTIONS":
         return _options(request)
-    return _response(request, {"detail": "CSRF cookie ready"})
+    return _response(request, {"detail": "CSRF cookie ready", "csrfToken": get_token(request)})
 
 
 @require_http_methods(["GET", "OPTIONS"])

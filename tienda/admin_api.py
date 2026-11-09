@@ -10,11 +10,24 @@ from django.views.decorators.http import require_http_methods
 from tienda.entidades import Categoria, DetallePedido, MovimientoInventario, Pedido, Producto, VarianteProducto
 
 
+def _with_cors(request, response):
+    origin = request.headers.get("Origin", "")
+    if origin.endswith(".app.github.dev") or origin.endswith(".manus.computer") or origin in {"http://localhost:3000", "http://127.0.0.1:3000"}:
+        response["Access-Control-Allow-Origin"] = origin
+        response["Access-Control-Allow-Credentials"] = "true"
+        response["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type, X-CSRFToken"
+        response["Vary"] = "Origin"
+    return response
+
+
 def _admin_only(view):
     def wrapped(request, *args, **kwargs):
+        if request.method == "OPTIONS":
+            return _with_cors(request, JsonResponse({}))
         if not request.user.is_authenticated or not request.user.is_staff:
-            return JsonResponse({"detail": "Debes iniciar sesión como administrador."}, status=403)
-        return view(request, *args, **kwargs)
+            return _with_cors(request, JsonResponse({"detail": "Debes iniciar sesión como administrador."}, status=403))
+        return _with_cors(request, view(request, *args, **kwargs))
     return wrapped
 
 

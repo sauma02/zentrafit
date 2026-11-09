@@ -26,6 +26,7 @@ export type CatalogResponse = {
 
 const baseUrl = (import.meta.env.VITE_DJANGO_BASE_URL ?? "").replace(/\/$/, "");
 const catalogEndpoint = import.meta.env.VITE_CATALOG_ENDPOINT?.trim() || "/api/catalog/";
+let csrfToken = "";
 
 export const djangoApi = {
   isConfigured: Boolean(baseUrl),
@@ -107,7 +108,9 @@ function joinUrl(origin: string, path: string) {
 
 async function ensureCsrf() {
   if (!baseUrl) return;
-  await fetch(joinUrl(baseUrl, "/api/csrf/"), { credentials: "include" });
+  const response = await fetch(joinUrl(baseUrl, "/api/csrf/"), { credentials: "include" });
+  const payload = await response.json().catch(() => ({}));
+  csrfToken = payload.csrfToken ?? getCookie("csrftoken");
 }
 
 async function requestJson<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
@@ -116,9 +119,8 @@ async function requestJson<T = unknown>(path: string, init: RequestInit = {}): P
     ...init,
     headers: {
       Accept: "application/json",
-      "Content-Type": "application/json",
+      ...(init.method && init.method !== "GET" ? { "Content-Type": "application/json", "X-CSRFToken": csrfToken || getCookie("csrftoken") } : {}),
       ...(init.headers ?? {}),
-      ...(init.method && init.method !== "GET" ? { "X-CSRFToken": getCookie("csrftoken") } : {}),
     },
   });
   const payload = await response.json().catch(() => ({}));
