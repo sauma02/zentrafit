@@ -19,6 +19,7 @@ from django.contrib import admin
 from django.urls import path
 from tienda import views
 from tienda import api_views
+from tienda import admin_api
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -26,6 +27,12 @@ urlpatterns = [
     path("api/catalog/", api_views.catalog_api, name="api_catalog"),
     path("api/cart/", api_views.cart_api, name="api_cart"),
     path("api/orders/", api_views.order_api, name="api_orders"),
+    path("api/admin/overview/", admin_api.overview, name="api_admin_overview"),
+    path("api/admin/categories/", admin_api.categories, name="api_admin_categories"),
+    path("api/admin/products/", admin_api.products, name="api_admin_products"),
+    path("api/admin/variants/", admin_api.variants, name="api_admin_variants"),
+    path("api/admin/inventory/", admin_api.inventory, name="api_admin_inventory"),
+    path("api/admin/orders/", admin_api.orders, name="api_admin_orders"),
     path('', views.vistaCatalogo, name='catalogo'),
     path('carrito/add/<str:varianteId>/', views.agregarAlCarritoVista, name='agregar_carrito'),
 ]

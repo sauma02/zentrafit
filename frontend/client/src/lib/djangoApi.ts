@@ -85,7 +85,21 @@ export const djangoApi = {
     await ensureCsrf();
     return requestJson<{ orderNumber: string; total: number }>("/api/orders/", { method: "POST", body: JSON.stringify(payload) });
   },
+
+  async getAdminOverview() { return adminRequest<AdminOverview>("/api/admin/overview/"); },
+  async getAdminProducts() { return adminRequest<{ products: AdminProduct[] }>("/api/admin/products/"); },
+  async getAdminCategories() { return adminRequest<{ categories: AdminCategory[] }>("/api/admin/categories/"); },
+  async getAdminInventory() { return adminRequest<{ inventory: AdminInventory[] }>("/api/admin/inventory/"); },
+  async createAdminCategory(payload: Record<string, unknown>) { return adminRequest("/api/admin/categories/", { method: "POST", body: JSON.stringify(payload) }); },
+  async createAdminProduct(payload: Record<string, unknown>) { return adminRequest("/api/admin/products/", { method: "POST", body: JSON.stringify(payload) }); },
+  async createAdminVariant(payload: Record<string, unknown>) { return adminRequest("/api/admin/variants/", { method: "POST", body: JSON.stringify(payload) }); },
+  async createInventoryMovement(payload: Record<string, unknown>) { return adminRequest("/api/admin/inventory/", { method: "POST", body: JSON.stringify(payload) }); },
 };
+
+export type AdminCategory = { id: string; name: string; description: string; active: boolean };
+export type AdminProduct = { id: string; name: string; description: string; brand: string; active: boolean; categoryId: string; category: string; variants: Array<ProductVariant & { stock: number }> };
+export type AdminInventory = { variantId: string; product: string; sku: string; stock: number; price: number };
+export type AdminOverview = { metrics: { products: number; variants: number; categories: number; pendingOrders: number; revenue: number }; lowStock: Array<{ product: string; sku: string; stock: number }>; orders: Array<{ number: string; customer: string; total: number; status: string; date: string }> };
 
 function joinUrl(origin: string, path: string) {
   return `${origin}/${path.replace(/^\//, "")}`;
@@ -110,6 +124,11 @@ async function requestJson<T = unknown>(path: string, init: RequestInit = {}): P
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.detail || `Django respondió ${response.status}.`);
   return payload as T;
+}
+
+async function adminRequest<T = unknown>(path: string, init: RequestInit = {}) {
+  await ensureCsrf();
+  return requestJson<T>(path, init);
 }
 
 function getCookie(name: string) {

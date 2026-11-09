@@ -21,6 +21,7 @@ El backend actual contiene:
 | Autenticación | No hay flujo de login HTTP implementado para la tienda | No se inventa una sesión de usuario |
 | Pagos | El modelo `Pago` existe, pero no hay endpoint de pago | No se simula checkout ni pago |
 | Imágenes | Existe `ImagenProducto`, pero no hay endpoint/serving público documentado | El frontend usa visuales de marca hasta conectar URLs reales |
+| Dashboard admin | `/admin-dashboard` consume `/api/admin/*` y requiere sesión staff de Django | Gestiona productos, variantes, categorías, movimientos de inventario y métricas |
 
 ## Variables de entorno
 
@@ -72,6 +73,10 @@ El adaptador acepta nombres en inglés y los nombres actuales del dominio Django
 2. Añadir autenticación de usuarios y asociar pedidos/carritos a `usuarioId` cuando exista sesión autenticada.
 3. Configurar CORS/CSRF y cookies seguras para el dominio de producción.
 4. Publicar las imágenes de `ImagenProducto` con URLs absolutas o un storage/CDN.
+
+## Dashboard administrativo
+
+Abre `/admin-dashboard` desde el frontend. El panel redirige a `/admin/login/` si no existe una sesión staff de Django. Después de iniciar sesión, permite crear categorías, productos y variantes, registrar entradas/salidas/ajustes de inventario y consultar métricas, stock bajo y pedidos recientes. Los movimientos se guardan en `MovimientoInventario` y el stock se calcula por entradas menos salidas.
 
 ## Estructura relevante
 
