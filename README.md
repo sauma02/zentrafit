@@ -1,167 +1,300 @@
 # ZentraFit
 
-Tienda virtual ZentraFit con backend Django y frontend React/Vite. El frontend consume el catálogo, carrito, CSRF y pedidos mediante la API Django. El pago se registra como `Pendiente` porque no hay pasarela conectada todavía.
+ZentraFit es una tienda virtual de suplementación deportiva con un storefront en React/Vite y un backend Django. La aplicación permite consultar productos, gestionar un carrito por sesión, crear pedidos y administrar catálogo e inventario desde un dashboard interno.
 
-## 1. Configurar Codespaces
+## Funcionalidades principales
 
-Abre el repositorio en GitHub Codespaces y ejecuta una sola vez:
+### Tienda pública
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-```
+La tienda muestra productos activos, variantes, precios, marcas y categorías. El usuario puede buscar productos, añadir variantes a la bolsa, modificar cantidades y completar sus datos de entrega.
 
-### Secretos
+El carrito se guarda en la sesión de Django, por lo que sus cantidades se conservan mientras la sesión siga activa.
 
-No guardes `SECRET_KEY` en GitHub. Crea un secreto de Codespaces llamado `DJANGO_SECRET_KEY` desde:
+### Creación de pedidos
 
-`GitHub → Settings → Codespaces → Secrets → New secret`
+El checkout solicita:
 
-También puedes definirlo temporalmente en la terminal, sin escribirlo en ningún archivo versionado:
+- Nombre y apellido.
+- Correo electrónico.
+- Teléfono.
+- Dirección de entrega.
+- Ciudad.
+- Método de pago informativo.
 
-```bash
-export DJANGO_SECRET_KEY='genera-aqui-una-clave-larga-y-aleatoria'
-```
+Al crear un pedido, el backend registra el pedido, sus detalles y un pago con estado `Pendiente`. Después vacía el carrito de la sesión. La integración de una pasarela de pago real queda como una fase posterior.
 
-La aplicación lee `DJANGO_SECRET_KEY` desde el entorno. El valor de fallback solo sirve para desarrollo local y no debe usarse en producción.
+### Dashboard administrativo
 
-Para generar una clave segura sin instalar herramientas adicionales:
-
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(50))"
-```
-
-> La clave que estuvo anteriormente en `settings.py` debe considerarse comprometida y debe rotarse. No reutilices ese valor.
-
-## 2. Arrancar Django
-
-En la primera terminal:
-
-```bash
-source .venv/bin/activate
-export DJANGO_SECRET_KEY='tu-secreto-de-Codespaces'
-python manage.py migrate
-python manage.py runserver 0.0.0.0:8000
-```
-
-En la pestaña **PORTS**, busca el puerto `8000` y copia su URL pública, por ejemplo:
+El dashboard ZentraFit está disponible en:
 
 ```text
-https://fictional-space-guide-7g4r6xww9x4fv9g-8000.app.github.dev
+/admin-dashboard
 ```
 
-## 3. Arrancar el frontend
+Incluye:
 
-En una segunda terminal:
+- Resumen de productos, variantes y categorías.
+- Pedidos pendientes y ventas completadas.
+- Pedidos recientes.
+- Alertas de inventario bajo.
+- Creación de categorías.
+- Creación de productos.
+- Creación de variantes y SKU.
+- Registro de entradas, salidas y ajustes de inventario.
+- Cálculo de existencias por variante.
 
-```bash
-cd frontend
-pnpm install
-export VITE_DJANGO_BASE_URL="https://fictional-space-guide-7g4r6xww9x4fv9g-8000.app.github.dev"
-export VITE_PREVIEW_MODE=false
-pnpm dev --host 0.0.0.0
+El acceso está restringido a usuarios administrativos de Django.
+
+## Arquitectura de la API
+
+La API utiliza JSON y mantiene la sesión mediante cookies de Django. Las operaciones que modifican datos requieren protección CSRF.
+
+### CSRF
+
+Antes de realizar operaciones `POST`, `PATCH` o `DELETE`, el frontend solicita:
+
+```http
+GET /api/csrf/
 ```
 
-En **PORTS**, abre el puerto `3000` con la URL similar a:
+El endpoint establece la cookie CSRF que se envía posteriormente mediante el header `X-CSRFToken`.
 
-```text
-https://fictional-space-guide-7g4r6xww9x4fv9g-3000.app.github.dev
+### Catálogo
+
+```http
+GET /api/catalog/
 ```
 
-## 4. Cómo se ve el dashboard
+Respuesta simplificada:
 
-El dashboard usa una estética ZentraFit oscura, con negro carbón, verde `#A2FF00`, tipografía deportiva y tarjetas redondeadas. La pantalla principal muestra:
-
-- Métricas de productos, variantes, categorías y pedidos pendientes.
-- Ventas completadas.
-- Pedidos recientes con estado y total.
-- Alertas de stock bajo.
-- Navegación lateral para productos, inventario y categorías.
-
-La ruta es:
-
-```text
-https://TU-URL-3000.app.github.dev/admin-dashboard
+```json
+{
+  "products": [
+    {
+      "id": "PROD##001",
+      "name": "Creatina Monohidratada",
+      "description": "Creatina para acompañar fuerza y rendimiento.",
+      "brand": "Nutrex",
+      "category": "Creatina",
+      "imageUrl": null,
+      "variants": [
+        {
+          "id": "VAR##001",
+          "sku": "NTR-CREA-300",
+          "flavor": "Sin sabor",
+          "size": "300",
+          "unit": "g",
+          "price": 90000,
+          "active": true
+        }
+      ]
+    }
+  ]
+}
 ```
 
-Si no has iniciado sesión, verás una pantalla protegida con un botón para entrar al Django Admin.
+Solo se muestran productos activos y variantes activas.
 
-## 5. Abrir el dashboard paso a paso
+### Carrito
 
-1. Abre la URL pública del puerto `8000` y entra en `/admin/`.
-2. Si no tienes usuario administrativo, detén Django y ejecuta:
+Consultar carrito:
 
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-3. Reinicia Django y entra con ese usuario en:
-
-   ```text
-   https://TU-URL-8000.app.github.dev/admin/
-   ```
-
-4. Abre la URL pública del puerto `3000` y añade:
-
-   ```text
-   /admin-dashboard
-   ```
-
-5. En **Productos** crea un producto y luego una variante.
-6. En **Inventario** registra una entrada para esa variante.
-7. Regresa a **Resumen** y verifica las métricas y el stock bajo.
-8. En **Categorías** crea nuevas categorías para organizar el catálogo.
-
-## 6. Probar una compra completa
-
-Desde la portada de la tienda:
-
-1. Confirma que el producto aparece desde `/api/catalog/`.
-2. Pulsa **Añadir**.
-3. Abre la bolsa y cambia la cantidad.
-4. Pulsa **Continuar compra**.
-5. Completa los datos de entrega.
-6. Pulsa **Crear pedido**.
-7. Revisa el pedido desde el dashboard o desde `/admin/`.
-
-El pedido crea sus detalles, registra un pago pendiente y vacía el carrito de la sesión.
-
-## 7. Validaciones
-
-Backend:
-
-```bash
-source .venv/bin/activate
-python manage.py check
-python manage.py test tienda.test_api
+```http
+GET /api/cart/
 ```
 
-Frontend:
+Añadir una variante:
 
-```bash
-cd frontend
-pnpm check
-pnpm build
+```http
+POST /api/cart/
+Content-Type: application/json
+
+{
+  "variantId": "VAR##001",
+  "quantity": 1
+}
 ```
 
-## Rutas principales
+Actualizar cantidad:
 
-| Ruta | Uso |
+```http
+PATCH /api/cart/
+Content-Type: application/json
+
+{
+  "variantId": "VAR##001",
+  "quantity": 3
+}
+```
+
+Eliminar una variante:
+
+```http
+DELETE /api/cart/
+Content-Type: application/json
+
+{
+  "variantId": "VAR##001"
+}
+```
+
+Respuesta habitual:
+
+```json
+{
+  "lines": [],
+  "total": 0,
+  "count": 0
+}
+```
+
+### Pedidos
+
+Crear un pedido:
+
+```http
+POST /api/orders/
+Content-Type: application/json
+
+{
+  "name": "Ana",
+  "lastName": "Cliente",
+  "email": "ana@example.com",
+  "phone": "3000000000",
+  "address": "Calle 1 # 2-3",
+  "city": "Bogotá",
+  "paymentMethod": "Transferencia"
+}
+```
+
+Respuesta:
+
+```json
+{
+  "orderId": "PD##001",
+  "orderNumber": "NMPD##001",
+  "total": 108000
+}
+```
+
+El costo de envío se calcula en el backend y el pago queda inicialmente en estado `Pendiente`.
+
+## API administrativa
+
+Las rutas administrativas requieren una sesión autenticada con permisos `staff` de Django.
+
+| Endpoint | Método | Función |
+| --- | --- | --- |
+| `/api/admin/overview/` | `GET` | Métricas, pedidos recientes y stock bajo |
+| `/api/admin/categories/` | `GET` | Listar categorías |
+| `/api/admin/categories/` | `POST` | Crear una categoría |
+| `/api/admin/products/` | `GET` | Listar productos y variantes |
+| `/api/admin/products/` | `POST` | Crear un producto |
+| `/api/admin/variants/` | `POST` | Crear una variante/SKU |
+| `/api/admin/inventory/` | `GET` | Consultar existencias calculadas |
+| `/api/admin/inventory/` | `POST` | Registrar entrada, salida o ajuste |
+| `/api/admin/orders/` | `GET` | Listar pedidos |
+| `/api/admin/orders/` | `PATCH` | Actualizar estado de un pedido |
+
+### Crear categoría
+
+```json
+{
+  "name": "Proteínas",
+  "description": "Proteínas para recuperación y crecimiento muscular.",
+  "active": true
+}
+```
+
+### Crear producto
+
+```json
+{
+  "name": "Proteína Whey",
+  "brand": "Marca aliada",
+  "description": "Proteína de suero para complementar la alimentación.",
+  "categoryId": "CAT##001",
+  "active": true
+}
+```
+
+### Crear variante
+
+```json
+{
+  "productId": "PROD##001",
+  "sku": "WHEY-001",
+  "flavor": "Chocolate",
+  "size": "2",
+  "unit": "kg",
+  "price": 180000,
+  "active": true
+}
+```
+
+### Registrar inventario
+
+```json
+{
+  "variantId": "VAR##001",
+  "type": "entrada",
+  "quantity": 20,
+  "reason": "Compra inicial",
+  "notes": "Ingreso de inventario de proveedor aliado"
+}
+```
+
+Los tipos disponibles son:
+
+- `entrada`: aumenta existencias.
+- `salida`: descuenta existencias.
+- `ajuste`: corrige positivamente las existencias.
+
+El stock se calcula mediante los movimientos registrados para cada variante.
+
+## Flujo recomendado de uso
+
+1. Crear una categoría.
+2. Crear un producto dentro de esa categoría.
+3. Añadir una o varias variantes con SKU y precio.
+4. Registrar la entrada inicial de inventario.
+5. Confirmar existencias en el dashboard.
+6. Publicar el producto como activo.
+7. Recibir pedidos desde la tienda pública.
+8. Revisar pedidos recientes y actualizar su estado desde la gestión administrativa.
+
+## Estados y errores
+
+La API devuelve respuestas JSON con un campo `detail` cuando ocurre un error. Los casos principales son:
+
+- `400`: datos incompletos o inválidos.
+- `403`: falta de sesión administrativa.
+- `404`: producto, variante, categoría o pedido inexistente.
+- `201`: recurso creado correctamente.
+- `200`: consulta o actualización correcta.
+
+## Rutas de la aplicación
+
+| Ruta | Descripción |
 | --- | --- |
-| `/` | Tienda pública |
-| `/admin-dashboard` | Dashboard visual ZentraFit |
+| `/` | Storefront público |
+| `/admin-dashboard` | Panel visual de gestión ZentraFit |
 | `/admin/` | Administración nativa de Django |
-| `/api/catalog/` | Catálogo JSON |
-| `/api/cart/` | Carrito por sesión |
+| `/api/catalog/` | Catálogo público en JSON |
+| `/api/cart/` | Carrito asociado a la sesión |
 | `/api/orders/` | Creación de pedidos |
-| `/api/admin/overview/` | Métricas protegidas |
-| `/api/admin/products/` | Gestión de productos |
-| `/api/admin/variants/` | Gestión de variantes |
-| `/api/admin/inventory/` | Movimientos de inventario |
-| `/api/admin/categories/` | Gestión de categorías |
+| `/api/admin/*` | Operaciones protegidas del dashboard |
 
-## Nota de seguridad
+## Organización del proyecto
 
-Nunca hagas commit de `.env`, claves de Django, contraseñas, tokens de pago ni credenciales. Si una clave fue subida alguna vez al repositorio, considérala comprometida, rótala y configura una nueva mediante GitHub Codespaces Secrets.
+```text
+zentrafit_project/       Configuración y URLs Django
+tienda/                  Modelos, API pública y API administrativa
+frontend/client/src/     Aplicación React/Vite
+frontend/brand-assets/   Assets de la marca ZentraFit
+frontend/INTEGRATION.md  Detalles técnicos de integración
+```
+
+## Estado actual
+
+La tienda, el carrito, el checkout, el catálogo, el inventario y el dashboard administrativo están conectados. Los pagos reales mediante Wompi, Mercado Pago, Stripe u otra pasarela todavía no están implementados; por ahora se registra el pedido y el pago queda como `Pendiente`.
