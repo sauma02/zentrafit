@@ -31,7 +31,7 @@ def _id(prefix):
 
 def _stock(variant):
     movements = MovimientoInventario.objects.filter(varianteId=variant)
-    return sum((movement.cantidad if movement.tipo == "entrada" else -movement.cantidad for movement in movements), 0)
+    return sum((movement.cantidad if movement.tipo in {"entrada", "ajuste"} else -movement.cantidad for movement in movements), 0)
 
 
 def _variant(variant):
