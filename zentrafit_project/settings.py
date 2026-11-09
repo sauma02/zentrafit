@@ -20,9 +20,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-# SECURITY WARNING: set DJANGO_SECRET_KEY in Codespaces/production secrets.
+# SECURITY WARNING: set ZENTRAFIT_SECRET_KEY in Codespaces/production secrets.
 # The fallback is intentionally public and only suitable for local development.
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-local-development-only")
+SECRET_KEY = os.environ.get("ZENTRAFIT_SECRET_KEY") or os.environ.get("DJANGO_SECRET_KEY") or "django-insecure-local-development-only"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
