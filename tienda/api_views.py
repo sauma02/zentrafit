@@ -18,7 +18,11 @@ def _origin(request):
 def _response(request, payload, status=200):
     response = JsonResponse(payload, status=status)
     origin = _origin(request)
-    if origin in {"http://localhost:3000", "http://127.0.0.1:3000"} or origin.endswith(".manus.computer"):
+    if (
+        origin in {"http://localhost:3000", "http://127.0.0.1:3000"}
+        or origin.endswith(".manus.computer")
+        or origin.endswith(".app.github.dev")
+    ):
         response["Access-Control-Allow-Origin"] = origin
         response["Access-Control-Allow-Credentials"] = "true"
         response["Vary"] = "Origin"

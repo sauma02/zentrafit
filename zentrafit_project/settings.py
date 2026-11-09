@@ -30,6 +30,7 @@ ALLOWED_HOSTS = ['localhost','127.0.0.1','fictional-space-guide-7g4r6xww9x4fv9g-
 CSRF_TRUSTED_ORIGINS = [
     "https://localhost:8000",
     "https://fictional-space-guide-7g4r6xww9x4fv9g-8000.app.github.dev",
+    "https://fictional-space-guide-7g4r6xww9x4fv9g-3000.app.github.dev",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
