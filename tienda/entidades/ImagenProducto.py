@@ -4,6 +4,7 @@ from tienda.entidades.identificadores import generar_id
 
 
 class ImagenProducto(models.Model):
+    # TODO: añadir carga y asociación de archivos desde el dashboard; por ahora `archivo` guarda la ruta o URL.
     idImagen = models.CharField(
         primary_key=True,
         max_length=50,
