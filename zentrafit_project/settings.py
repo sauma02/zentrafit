@@ -27,7 +27,13 @@ SECRET_KEY = os.environ.get("ZENTRAFIT_SECRET_KEY") or os.environ.get("DJANGO_SE
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost','127.0.0.1','fictional-space-guide-7g4r6xww9x4fv9g-8000.app.github.dev']
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    ".app.github.dev",
+    ".manus.computer",
+    *[host.strip() for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if host.strip()],
+]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://localhost:8000",
