@@ -77,7 +77,7 @@ pnpm install
 pnpm dev --host 0.0.0.0 --port 3000
 ```
 
-El storefront se abre en la URL pública del puerto 3000. El dashboard visual está en `/admin` de esa misma URL; no debe confundirse con `/admin/` del backend Django.
+El storefront se abre en la URL pública del puerto 3000. El dashboard visual está en `/admin-dashboard` de esa misma URL; no debe confundirse con `/admin/` del backend Django.
 
 ## Variables de entorno del frontend
 
@@ -99,7 +99,7 @@ No guardar contraseñas, `SECRET_KEY`, tokens ni bases de datos con información
 |---|---|
 | Storefront | `https://TU-URL-3000/` |
 | Detalle de producto | `https://TU-URL-3000/producto/<id>` |
-| Dashboard visual | `https://TU-URL-3000/admin` |
+| Dashboard visual | `https://TU-URL-3000/admin-dashboard` |
 | Django Admin | `https://TU-URL-8000/admin/` |
 | Catálogo público | `GET /api/catalog/` |
 | Carrito | `GET/POST/PATCH/DELETE /api/cart/` |
@@ -128,7 +128,7 @@ WhatsApp comunica la solicitud; no sustituye la creación del pedido ni confirma
 
 ## Dashboard visual
 
-El dashboard `/admin` consume endpoints administrativos protegidos por sesión Django y CSRF. Incluye resumen, categorías, productos, variantes, inventario, imágenes, pedidos y acciones de factura preparadas.
+El dashboard `/admin-dashboard` consume endpoints administrativos protegidos por sesión Django y CSRF. Incluye resumen, categorías, productos, variantes, inventario, imágenes, pedidos y acciones de factura preparadas.
 
 La API administrativa comprueba que el usuario esté autenticado y tenga `is_staff=True`. Un error 403 normalmente significa que hace falta iniciar sesión en el Django Admin del puerto 8000 o que la cookie no está llegando por una configuración incorrecta de CORS/CSRF.
 

@@ -1,5 +1,27 @@
 # Manual de usuario de ZentraFit
 
+## Vista visual de la aplicación
+
+Las siguientes capturas corresponden al frontend integrado del repositorio. La tienda usa la identidad visual neon green, negro y blanco; el dashboard usa una interfaz oscura orientada a la gestión operativa.
+
+### Storefront y página de inicio
+
+![Storefront de ZentraFit](manual-usuario-assets/storefront.png)
+
+La página inicial presenta el mensaje de marca, acceso al catálogo, buscador, filtros por categoría y la bolsa de compra. El botón **Explorar catálogo** lleva a la sección de productos.
+
+### Catálogo y selección de productos
+
+![Catálogo de productos ZentraFit](manual-usuario-assets/catalogo.png)
+
+En el catálogo se revisan las tarjetas de productos, presentación, precio, imágenes y botón **Añadir**. Cuando el backend devuelve varias imágenes, las flechas e indicadores permiten recorrer la galería.
+
+### Dashboard administrativo
+
+![Dashboard administrativo de ZentraFit](manual-usuario-assets/dashboard.png)
+
+El dashboard concentra el resumen, productos, imágenes, pedidos, inventario y categorías. La captura muestra el estado vacío inicial; al conectar Django aparecerán las métricas y registros reales.
+
 ## 1. Iniciar la aplicación
 
 ### Backend Django
@@ -24,7 +46,7 @@ pnpm install
 pnpm dev --host 0.0.0.0 --port 3000
 ```
 
-Usa la URL pública del puerto 3000. La tienda está en `/` y el dashboard visual en `/admin`.
+Usa la URL pública del puerto 3000. La tienda está en `/` y el dashboard visual en `/admin-dashboard`.
 
 ## 2. Configuración del frontend
 
@@ -58,7 +80,7 @@ El frontend solo muestra productos y variantes activos. Si un producto no aparec
 
 ## 4. Subir imágenes
 
-1. Abre `/admin` en la URL del frontend.
+1. Abre `/admin-dashboard` en la URL del frontend.
 2. Selecciona la pestaña **Imágenes**.
 3. Elige el producto.
 4. Selecciona un archivo de imagen.
