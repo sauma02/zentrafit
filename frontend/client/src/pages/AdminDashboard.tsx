@@ -19,6 +19,8 @@ export default function AdminDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    // El dashboard carga datos reales del backend; si falta sesión staff,
+    // admin_api.py responde 403 y se muestra la pantalla de acceso.
     let cancelled = false;
     setLoading(true);
     Promise.all([djangoApi.getAdminOverview(), djangoApi.getAdminProducts(), djangoApi.getAdminCategories(), djangoApi.getAdminInventory(), djangoApi.getAdminOrders()])
@@ -49,6 +51,8 @@ function Field({ placeholder, value, onChange, type = "text" }: { placeholder: s
 function Empty({ text }: { text: string }) { return <p className="py-8 text-center text-sm text-white/35">{text}</p>; }
 
 function ImagesManager({ products, onCreated }: { products: AdminProduct[]; onCreated: () => void }) {
+  // La subida usa FormData porque ImageField requiere multipart/form-data;
+  // el endpoint sigue delegando la regla de negocio en ProductoServicio.
   const [productId, setProductId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isPrimary, setIsPrimary] = useState(false);
@@ -91,6 +95,8 @@ function Orders({ orders }: { orders: AdminOrder[] }) {
 }
 
 function InvoiceActions({ orderId, email }: { orderId: string; email: string }) {
+  // Estas acciones quedan preparadas para los endpoints de factura que se
+  // implementarán en Django; no se genera ningún documento desde React.
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [generated, setGenerated] = useState(false);
   const [busy, setBusy] = useState(false);

@@ -30,6 +30,8 @@ def _with_cors(request, response):
 
 def _admin_only(view):
     def wrapped(request, *args, **kwargs):
+        # El dashboard depende de una sesión staff de Django. Un 403 aquí no
+        # es un error de React: significa que hay que iniciar sesión en /admin/.
         if request.method == "OPTIONS":
             return _with_cors(request, JsonResponse({}))
         if not request.user.is_authenticated or not request.user.is_staff:
@@ -213,6 +215,8 @@ def images(request):
         return JsonResponse({})
     product_id = request.POST.get("productId")
     archivo = request.FILES.get("archivo")
+    # FormData llega en request.FILES; la vista valida transporte y permisos,
+    # mientras ProductoServicio conserva las reglas de negocio MVC.
     if not product_id or not archivo:
         return JsonResponse({"detail": "Producto y archivo son obligatorios."}, status=400)
     try:

@@ -22,6 +22,8 @@ def _origin(request):
 
 
 def _is_allowed_origin(origin):
+    # Si el frontend muestra "Failed to fetch", revisar primero esta lista y
+    # el puerto real de Vite. Nunca usar '*' junto con cookies de sesión.
     return bool(
         origin
         and (
@@ -72,6 +74,8 @@ def _serialize_variant(variant):
 
 
 def _serialize_product(request, product):
+    # El servicio entrega entidades Producto; esta función solo transforma la
+    # entidad a JSON y convierte cada ImageField en una URL pública absoluta.
     images = list(product.imagenes.all())
     primary = next((image for image in images if image.esPrincipal), images[0] if images else None)
     image_urls = [

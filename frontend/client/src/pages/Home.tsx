@@ -326,6 +326,8 @@ function CartDrawer({ lines, total, onClose, onChange }: { lines: CartLine[]; to
 
   async function submitOrder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Primero se crea el pedido real como pendiente; WhatsApp comunica la
+    // solicitud al negocio, pero no reemplaza la confirmación del backend.
     if (!djangoApi.isConfigured || djangoApi.previewMode) {
       toast.info("Configura VITE_DJANGO_BASE_URL y VITE_PREVIEW_MODE=false para activar pedidos reales.");
       return;
@@ -334,6 +336,8 @@ function CartDrawer({ lines, total, onClose, onChange }: { lines: CartLine[]; to
     try {
       const order = await djangoApi.createOrder(form);
       const orderLines = linesForWhatsApp(lines);
+      // Mantener aquí los datos que el administrador necesita para confirmar:
+      // cliente, contacto, dirección, detalle, total y estado del pedido.
       const message = [
         "Hola, quiero solicitar este pedido en ZentraFit.",
         `Pedido: ${order.orderNumber}`,

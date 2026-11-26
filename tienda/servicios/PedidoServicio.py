@@ -15,6 +15,8 @@ class PedidoServicio:
     @staticmethod
     @transaction.atomic
     def crearPedido(usuario, carrito, datosCliente, direccion, ciudad, metodoPago, descuento=Decimal("0")):
+        # La transacción garantiza que pedido, detalles y pago pendiente se
+        # guarden juntos; si una validación falla, Django revierte todo.
         carrito = carrito if hasattr(carrito, "exists") else list(carrito)
         if not carrito.exists() if hasattr(carrito, "exists") else not carrito:
             raise ValidationError("El carrito está vacío, no se puede crear el pedido.")
@@ -23,10 +25,14 @@ class PedidoServicio:
             raise ValidationError("El descuento debe estar entre 0 y 1.")
         subtotal = sum((item.varianteId.precio * item.cantidad for item in carrito), Decimal("0"))
         costo_envio = Decimal("18000")
+        # El total se calcula en backend, nunca se toma como verdad el total
+        # enviado por el navegador. La idempotencia futura puede usar una
+        # referencia única del checkout para evitar pedidos duplicados.
         pedido = Pedido(
             idPedido=f"PD##{generar_id()}",
             usuarioId=usuario,
             numeroPedido=f"NMPD##{generar_id()}",
+            # estado=False representa "Por confirmar" en el dashboard.
             estado=False,
             nombreCliente=str(datosCliente["nombre"]).strip(),
             apellidoCliente=str(datosCliente["apellido"]).strip(),

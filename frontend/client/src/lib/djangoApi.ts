@@ -27,6 +27,8 @@ export type CatalogResponse = {
   warning?: string;
 };
 
+// La URL del backend vive en .env.local; si apunta al puerto incorrecto,
+// el navegador reportará "Failed to fetch" aunque React compile bien.
 const baseUrl = (import.meta.env.VITE_DJANGO_BASE_URL ?? "").replace(/\/$/, "");
 const catalogEndpoint = import.meta.env.VITE_CATALOG_ENDPOINT?.trim() || "/api/catalog/";
 let csrfToken = "";
@@ -136,6 +138,8 @@ function joinUrl(origin: string, path: string) {
 }
 
 async function ensureCsrf() {
+  // Django exige esta cookie antes de cualquier POST/PATCH/DELETE protegido.
+  // Si falla, revisar CORS, CSRF_TRUSTED_ORIGINS y que ambos puertos estén activos.
   if (!baseUrl) return;
   const url = joinUrl(baseUrl, "/api/csrf/");
   try {
@@ -175,6 +179,7 @@ async function requestJson<T = unknown>(path: string, init: RequestInit = {}): P
 }
 
 async function adminRequest<T = unknown>(path: string, init: RequestInit = {}) {
+  // Todas las acciones del dashboard pasan por esta puerta: sesión staff + CSRF.
   await ensureCsrf();
   return requestJson<T>(path, init);
 }
@@ -184,6 +189,8 @@ function getCookie(name: string) {
 }
 
 function normalizeJsonCatalog(payload: unknown): StoreProduct[] {
+  // Este adaptador permite que el frontend tolere nombres JSON antiguos y el
+  // formato actual del catálogo sin inventar productos ni precios.
   const rawProducts = Array.isArray(payload)
     ? payload
     : isRecord(payload) && Array.isArray(payload.products)
