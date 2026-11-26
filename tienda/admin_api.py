@@ -85,6 +85,17 @@ def _category(category):
     }
 
 
+def _image(image, request=None):
+    url = image.archivo.url if image.archivo else None
+    return {
+        "id": image.idImagen,
+        "productId": image.idProducto_id,
+        "url": request.build_absolute_uri(url) if request and url else url,
+        "isPrimary": image.esPrincipal,
+        "order": image.orden,
+    }
+
+
 def _order(order):
     return {
         "id": order.idPedido,
@@ -192,6 +203,28 @@ def variants(request):
     except ValidationError as error:
         return JsonResponse({"detail": error.messages[0]}, status=400)
     return JsonResponse(_variant(variant), status=201)
+
+
+@_admin_only
+@require_http_methods(["POST", "OPTIONS"])
+@csrf_protect
+def images(request):
+    if request.method == "OPTIONS":
+        return JsonResponse({})
+    product_id = request.POST.get("productId")
+    archivo = request.FILES.get("archivo")
+    if not product_id or not archivo:
+        return JsonResponse({"detail": "Producto y archivo son obligatorios."}, status=400)
+    try:
+        orden = int(request.POST.get("order", 0))
+        is_primary = request.POST.get("isPrimary", "false").lower() in {"true", "1", "on", "yes"}
+        image = ProductoServicio.asociarImagenes(product_id, archivo, is_primary, orden)
+    except ObjectDoesNotExist:
+        return JsonResponse({"detail": "Producto no encontrado."}, status=404)
+    except (ValidationError, ValueError) as error:
+        detail = error.messages[0] if isinstance(error, ValidationError) else "El orden no es válido."
+        return JsonResponse({"detail": detail}, status=400)
+    return JsonResponse(_image(image, request), status=201)
 
 
 @_admin_only

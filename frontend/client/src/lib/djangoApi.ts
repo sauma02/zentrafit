@@ -102,6 +102,19 @@ export const djangoApi = {
   async createAdminCategory(payload: Record<string, unknown>) { return adminRequest("/api/admin/categories/", { method: "POST", body: JSON.stringify(payload) }); },
   async createAdminProduct(payload: Record<string, unknown>) { return adminRequest("/api/admin/products/", { method: "POST", body: JSON.stringify(payload) }); },
   async createAdminVariant(payload: Record<string, unknown>) { return adminRequest("/api/admin/variants/", { method: "POST", body: JSON.stringify(payload) }); },
+  async uploadAdminImage(formData: FormData) {
+    await ensureCsrf();
+    const url = joinUrl(baseUrl, "/api/admin/images/");
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+      headers: { Accept: "application/json", "X-CSRFToken": csrfToken || getCookie("csrftoken") },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.detail || `Django respondió ${response.status}.`);
+    return payload;
+  },
   async createInventoryMovement(payload: Record<string, unknown>) { return adminRequest("/api/admin/inventory/", { method: "POST", body: JSON.stringify(payload) }); },
 };
 

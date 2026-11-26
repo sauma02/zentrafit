@@ -33,6 +33,7 @@ urlpatterns = [
     path("api/admin/categories/", admin_api.categories, name="api_admin_categories"),
     path("api/admin/products/", admin_api.products, name="api_admin_products"),
     path("api/admin/variants/", admin_api.variants, name="api_admin_variants"),
+    path("api/admin/images/", admin_api.images, name="api_admin_images"),
     path("api/admin/inventory/", admin_api.inventory, name="api_admin_inventory"),
     path("api/admin/orders/", admin_api.orders, name="api_admin_orders"),
     path('', views.vistaCatalogo, name='catalogo'),
