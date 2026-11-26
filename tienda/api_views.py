@@ -1,4 +1,5 @@
 import json
+import re
 from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 
@@ -20,14 +21,21 @@ def _origin(request):
     return request.headers.get("Origin") or ""
 
 
+def _is_allowed_origin(origin):
+    return bool(
+        origin
+        and (
+            origin.endswith(".manus.computer")
+            or origin.endswith(".app.github.dev")
+            or re.match(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$", origin)
+        )
+    )
+
+
 def _response(request, payload, status=200):
     response = JsonResponse(payload, status=status)
     origin = _origin(request)
-    if (
-        origin in {"http://localhost:3000", "http://127.0.0.1:3000"}
-        or origin.endswith(".manus.computer")
-        or origin.endswith(".app.github.dev")
-    ):
+    if _is_allowed_origin(origin):
         response["Access-Control-Allow-Origin"] = origin
         response["Access-Control-Allow-Credentials"] = "true"
         response["Vary"] = "Origin"
@@ -37,7 +45,7 @@ def _response(request, payload, status=200):
 def _options(request):
     response = _response(request, {})
     response["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
-    response["Access-Control-Allow-Headers"] = "Content-Type, X-CSRFToken"
+    response["Access-Control-Allow-Headers"] = "Accept, Content-Type, X-CSRFToken"
     return response
 
 

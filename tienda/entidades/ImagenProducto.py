@@ -4,11 +4,9 @@ from tienda.entidades.identificadores import generar_id
 
 
 class ImagenProducto(models.Model):
-    # TODO: añadir carga y asociación de archivos desde el dashboard; por ahora `archivo` guarda la ruta o URL.
     idImagen = models.CharField(
         primary_key=True,
         max_length=50,
-        
     )
     idProducto = models.ForeignKey(
         "tienda.Producto",
@@ -16,7 +14,7 @@ class ImagenProducto(models.Model):
         on_delete=models.CASCADE,
         related_name="imagenes",
     )
-    archivo = models.CharField(max_length=255)
+    archivo = models.ImageField(upload_to="productos/", max_length=255)
     esPrincipal = models.BooleanField(default=False)
     orden = models.PositiveSmallIntegerField(default=0)
 

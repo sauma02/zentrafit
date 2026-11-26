@@ -37,11 +37,13 @@ ALLOWED_HOSTS = [
 
 CSRF_TRUSTED_ORIGINS = [
     "https://localhost:8000",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
     "https://fictional-space-guide-7g4r6xww9x4fv9g-8000.app.github.dev",
     "https://fictional-space-guide-7g4r6xww9x4fv9g-3000.app.github.dev",
     "https://*.app.github.dev",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
 ]
 # Application definition
 
@@ -131,6 +133,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = "static/"
+
+# User-uploaded product images are local application data, not source code.
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 
 # Email

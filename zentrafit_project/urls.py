@@ -16,6 +16,8 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import path
 from tienda import views
 from tienda import api_views
@@ -36,3 +38,6 @@ urlpatterns = [
     path('', views.vistaCatalogo, name='catalogo'),
     path('carrito/add/<str:varianteId>/', views.agregarAlCarritoVista, name='agregar_carrito'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

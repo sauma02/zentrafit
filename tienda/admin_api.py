@@ -1,4 +1,5 @@
 import json
+import re
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.http import JsonResponse
@@ -14,11 +15,15 @@ from tienda.servicios.ProductoServicio import ProductoServicio
 
 def _with_cors(request, response):
     origin = request.headers.get("Origin", "")
-    if origin.endswith(".app.github.dev") or origin.endswith(".manus.computer") or origin in {"http://localhost:3000", "http://127.0.0.1:3000"}:
+    if (
+        origin.endswith(".app.github.dev")
+        or origin.endswith(".manus.computer")
+        or re.match(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$", origin)
+    ):
         response["Access-Control-Allow-Origin"] = origin
         response["Access-Control-Allow-Credentials"] = "true"
         response["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, X-CSRFToken"
+        response["Access-Control-Allow-Headers"] = "Accept, Content-Type, X-CSRFToken"
         response["Vary"] = "Origin"
     return response
 
