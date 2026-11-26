@@ -99,6 +99,7 @@ export const djangoApi = {
   async getAdminProducts() { return adminRequest<{ products: AdminProduct[] }>("/api/admin/products/"); },
   async getAdminCategories() { return adminRequest<{ categories: AdminCategory[] }>("/api/admin/categories/"); },
   async getAdminInventory() { return adminRequest<{ inventory: AdminInventory[] }>("/api/admin/inventory/"); },
+  async getAdminOrders() { return adminRequest<{ orders: AdminOrder[] }>("/api/admin/orders/"); },
   async createAdminCategory(payload: Record<string, unknown>) { return adminRequest("/api/admin/categories/", { method: "POST", body: JSON.stringify(payload) }); },
   async createAdminProduct(payload: Record<string, unknown>) { return adminRequest("/api/admin/products/", { method: "POST", body: JSON.stringify(payload) }); },
   async createAdminVariant(payload: Record<string, unknown>) { return adminRequest("/api/admin/variants/", { method: "POST", body: JSON.stringify(payload) }); },
@@ -121,6 +122,7 @@ export const djangoApi = {
 export type AdminCategory = { id: string; name: string; description: string; active: boolean };
 export type AdminProduct = { id: string; name: string; description: string; brand: string; active: boolean; categoryId: string; category: string; variants: Array<ProductVariant & { stock: number }> };
 export type AdminInventory = { variantId: string; product: string; sku: string; stock: number; price: number };
+export type AdminOrder = { id: string; number: string; customer: string; email: string; city: string; total: number; status: string; date: string; items: Array<{ name: string; sku: string; quantity: number; subtotal: number }> };
 export type AdminOverview = { metrics: { products: number; variants: number; categories: number; pendingOrders: number; revenue: number }; lowStock: Array<{ product: string; sku: string; stock: number }>; orders: Array<{ number: string; customer: string; total: number; status: string; date: string }> };
 
 function joinUrl(origin: string, path: string) {

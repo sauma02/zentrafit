@@ -30,6 +30,8 @@ const currency = new Intl.NumberFormat("es-CO", {
   maximumFractionDigits: 0,
 });
 
+const whatsappNumber = String(import.meta.env.VITE_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
+
 const categories = ["Todos", "Proteínas", "Creatina", "Pre-entreno", "Bienestar"];
 
 type CartLine = {
@@ -331,8 +333,25 @@ function CartDrawer({ lines, total, onClose, onChange }: { lines: CartLine[]; to
     setSubmitting(true);
     try {
       const order = await djangoApi.createOrder(form);
-      toast.success(`Pedido ${order.orderNumber} creado correctamente.`);
+      const orderLines = linesForWhatsApp(lines);
+      const message = [
+        "Hola, quiero solicitar este pedido en ZentraFit.",
+        `Pedido: ${order.orderNumber}`,
+        `Cliente: ${form.name} ${form.lastName}`,
+        `Teléfono: ${form.phone}`,
+        `Correo: ${form.email}`,
+        `Dirección: ${form.address}, ${form.city}`,
+        "",
+        "Productos:",
+        orderLines,
+        "",
+        `Total estimado: ${currency.format(order.total)}`,
+        "Estado: Por confirmar",
+        "Medio de pago: Se coordina por WhatsApp",
+      ].join("\n");
+      toast.success(`Pedido ${order.orderNumber} creado. Redirigiendo a WhatsApp.`);
       onClose();
+      if (whatsappNumber) window.location.assign(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No fue posible crear el pedido.");
     } finally {
@@ -342,4 +361,8 @@ function CartDrawer({ lines, total, onClose, onChange }: { lines: CartLine[]; to
 
   const updateField = (field: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm((current) => ({ ...current, [field]: event.target.value }));
   return <div className="fixed inset-0 z-50"><button className="absolute inset-0 bg-black/45 backdrop-blur-sm" aria-label="Cerrar carrito" onClick={onClose} /><aside className="drawer-panel absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-[#f7f7f3] p-6 shadow-2xl sm:p-8"><div className="flex items-center justify-between border-b border-black/10 pb-6"><div><p className="section-kicker">{checkoutOpen ? "Datos de entrega" : "Tu selección"}</p><h2 className="font-display mt-2 text-3xl font-black uppercase tracking-[-.05em]">{checkoutOpen ? "Finalizar pedido" : <>Bolsa <span className="text-[#77ae00]">({lines.length})</span></>}</h2></div><button className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={20} /></button></div>{lines.length ? checkoutOpen ? <form onSubmit={submitOrder} className="flex flex-1 flex-col overflow-y-auto py-7"><div className="grid gap-3 sm:grid-cols-2"><Input required placeholder="Nombre" value={form.name} onChange={updateField("name")} /><Input required placeholder="Apellido" value={form.lastName} onChange={updateField("lastName")} /></div><Input required type="email" placeholder="Correo electrónico" value={form.email} onChange={updateField("email")} className="mt-3" /><Input required placeholder="Teléfono" value={form.phone} onChange={updateField("phone")} className="mt-3" /><Input required placeholder="Dirección de entrega" value={form.address} onChange={updateField("address")} className="mt-3" /><Input required placeholder="Ciudad" value={form.city} onChange={updateField("city")} className="mt-3" /><select value={form.paymentMethod} onChange={updateField("paymentMethod")} className="mt-3 h-11 rounded-xl border border-black/15 bg-white px-3 text-sm"><option value="Transferencia">Transferencia bancaria</option><option value="Contra entrega">Contra entrega</option></select><div className="mt-auto border-t border-black/10 pt-6"><div className="flex items-center justify-between"><span className="text-sm text-black/50">Total estimado</span><span className="text-xl font-black">{currency.format(total + 18000)}</span></div><button disabled={submitting} className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#0a0a0a] text-xs font-black uppercase tracking-[.16em] text-white transition hover:bg-[#a2ff00] hover:text-black disabled:opacity-50">{submitting ? "Enviando..." : "Crear pedido"}</button><button type="button" onClick={() => setCheckoutOpen(false)} className="mt-4 w-full text-xs font-black uppercase tracking-[.15em] text-black/45">Volver a la bolsa</button></div></form> : <><div className="flex-1 space-y-3 overflow-y-auto py-7">{lines.map((line) => <div key={line.variant.id} className="flex gap-4 rounded-2xl border border-black/10 bg-white p-4"><div className="mini-product-art">{line.product.brand.slice(0, 1)}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{line.product.name}</p><p className="mt-1 text-xs text-black/45">{line.variant.size} {line.variant.unit}</p><div className="mt-3 flex items-center justify-between"><span className="text-sm font-black">{currency.format(line.variant.price * line.quantity)}</span><div className="flex items-center gap-2 rounded-full bg-black/5 p-1"><button onClick={() => onChange(line.variant.id, -1)} className="flex h-6 w-6 items-center justify-center rounded-full bg-white"><Minus size={12} /></button><span className="w-4 text-center text-xs font-bold">{line.quantity}</span><button onClick={() => onChange(line.variant.id, 1)} className="flex h-6 w-6 items-center justify-center rounded-full bg-white"><Plus size={12} /></button></div></div></div></div>)}</div><div className="border-t border-black/10 pt-6"><div className="flex items-center justify-between"><span className="text-sm text-black/50">Subtotal</span><span className="text-xl font-black">{currency.format(total)}</span></div><button className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#0a0a0a] text-xs font-black uppercase tracking-[.16em] text-white transition hover:bg-[#a2ff00] hover:text-black" onClick={() => setCheckoutOpen(true)}><ShoppingBag size={17} /> Continuar compra</button><p className="mt-3 text-center text-[11px] leading-5 text-black/40">Completa tus datos para crear el pedido en Django.</p></div></> : <div className="flex flex-1 flex-col items-center justify-center text-center"><div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#dfffb0]"><ShoppingBag size={28} /></div><h3 className="font-display text-3xl font-black uppercase">Tu bolsa está vacía.</h3><p className="mt-3 max-w-xs text-sm leading-6 text-black/50">Añade una opción para empezar a construir tu próximo avance.</p><button onClick={onClose} className="mt-7 text-xs font-black uppercase tracking-[.15em] underline underline-offset-8">Explorar productos</button></div>}</aside></div>;
+}
+
+function linesForWhatsApp(lines: CartLine[]) {
+  return lines.map((line) => `- ${line.product.name} / ${line.variant.size} ${line.variant.unit} x${line.quantity} — ${currency.format(line.variant.price * line.quantity)}`).join("\n");
 }
