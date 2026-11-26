@@ -74,6 +74,11 @@ def _serialize_variant(variant):
 def _serialize_product(request, product):
     images = list(product.imagenes.all())
     primary = next((image for image in images if image.esPrincipal), images[0] if images else None)
+    image_urls = [
+        request.build_absolute_uri(image.archivo.url)
+        for image in images
+        if image.archivo
+    ]
     return {
         "id": product.idProducto,
         "name": product.nombre,
@@ -81,6 +86,7 @@ def _serialize_product(request, product):
         "brand": product.marca,
         "category": product.categoriaId.nombre,
         "imageUrl": request.build_absolute_uri(primary.archivo.url) if primary and primary.archivo else None,
+        "images": image_urls,
         "variants": [_serialize_variant(variant) for variant in product.variantes.filter(activo=True)],
     }
 

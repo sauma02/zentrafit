@@ -17,6 +17,7 @@ export type StoreProduct = {
   brand: string;
   category: string;
   imageUrl?: string;
+  images: string[];
   variants: ProductVariant[];
 };
 
@@ -178,6 +179,9 @@ function normalizeJsonCatalog(payload: unknown): StoreProduct[] {
       brand: stringValue(item.brand ?? item.marca, "ZentraFit"),
       category: stringValue(item.category ?? item.categoria?.nombre ?? item.categoria, "Rendimiento"),
       imageUrl: stringValue(item.imageUrl ?? item.imagen, "") || undefined,
+      images: Array.isArray(item.images)
+        ? item.images.filter((image): image is string => typeof image === "string" && image.length > 0)
+        : [],
       variants: rawVariants.map((rawVariant, variantIndex) => {
         const variant = isRecord(rawVariant) ? rawVariant : {};
         return {
@@ -217,7 +221,7 @@ function parseLegacyCatalog(html: string): StoreProduct[] {
           active: true,
         };
       });
-      return { id: `legacy-${productIndex}`, name, description, brand, category, variants };
+      return { id: `legacy-${productIndex}`, name, description, brand, category, images: [], variants };
     });
 }
 
@@ -248,6 +252,7 @@ const previewProducts: StoreProduct[] = [
     description: "Creatina monohidratada Nutrex de 300 g para acompañar fuerza, potencia y consistencia.",
     brand: "Nutrex",
     category: "Creatina",
+    images: [],
     variants: [
       {
         id: "1",

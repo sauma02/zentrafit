@@ -6,6 +6,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/AdminDashboard";
+import ProductDetail from "./pages/ProductDetail";
 import DebugPanel from "./components/DebugPanel";
 import { installGlobalDebugHandlers } from "./lib/debugLogger";
 
@@ -15,6 +16,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/producto/:id" component={ProductDetail} />
       <Route path="/admin-dashboard" component={AdminDashboard} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

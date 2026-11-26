@@ -5,6 +5,8 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CircleHelp,
   Dumbbell,
   Menu,
@@ -292,11 +294,25 @@ function AnnouncementBar() { return <div className="bg-[#0a0a0a] px-5 py-2.5 tex
 function TrustItem({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) { return <div className="flex items-start gap-4 border-black/15 py-6 sm:border-r sm:px-8 sm:first:pl-0 sm:last:border-0 lg:py-7"><span className="mt-0.5">{icon}</span><div><p className="text-xs font-black uppercase tracking-[.13em]">{title}</p><p className="mt-1 text-xs text-black/55">{text}</p></div></div>; }
 function ProductCard({ product, index, onAdd }: { product: StoreProduct; index: number; onAdd: (product: StoreProduct, variant: ProductVariant) => void }) {
   const variant = product.variants.find((item) => item.active) ?? product.variants[0];
+  const images = product.images.length ? product.images : product.imageUrl ? [product.imageUrl] : [];
+  const [imageIndex, setImageIndex] = useState(0);
+  const hasGallery = images.length > 0;
+  const showPrevious = () => setImageIndex((current) => (current - 1 + images.length) % images.length);
+  const showNext = () => setImageIndex((current) => (current + 1) % images.length);
   return <article className="product-card group" style={{ animationDelay: `${index * 60}ms` }}>
     <div className="product-art">
-      {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-6" /> : <><div className="product-art-grid" /><span className="product-art-label">{product.category}</span><span className="product-art-symbol">{product.brand.slice(0, 1)}</span><div className="product-art-shine" /></>}
+      <div className="product-art-grid" />
+      <span className="product-art-label">{product.category}</span>
+      <span className="product-art-symbol">{product.brand.slice(0, 1)}</span>
+      <div className="product-art-shine" />
+      {hasGallery && <img src={images[imageIndex]} alt={`${product.name} — imagen ${imageIndex + 1}`} className="relative z-10 h-full w-full object-contain p-6 drop-shadow-[0_14px_18px_rgba(0,0,0,.35)]" />}
+      {images.length > 1 && <>
+        <button type="button" aria-label="Imagen anterior" onClick={showPrevious} className="absolute left-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition hover:bg-[#a2ff00] hover:text-black"><ChevronLeft size={17} /></button>
+        <button type="button" aria-label="Siguiente imagen" onClick={showNext} className="absolute right-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition hover:bg-[#a2ff00] hover:text-black"><ChevronRight size={17} /></button>
+        <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/45 px-2 py-1 backdrop-blur">{images.map((image, position) => <button key={image} type="button" aria-label={`Ver imagen ${position + 1}`} onClick={() => setImageIndex(position)} className={`h-1.5 w-1.5 rounded-full transition ${position === imageIndex ? "bg-[#a2ff00]" : "bg-white/55"}`} />)}</div>
+      </>}
     </div>
-    <div className="p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-[.16em] text-black/40">{product.brand}</p><h3 className="mt-2 font-display text-2xl font-black uppercase leading-[.94] tracking-[-.04em]">{product.name}</h3></div><Badge className="shrink-0 rounded-full bg-[#edffd0] text-[9px] font-black uppercase tracking-[.12em] text-[#547c00] hover:bg-[#edffd0]">Activo</Badge></div><p className="mt-4 line-clamp-2 min-h-10 text-sm leading-5 text-black/55">{product.description}</p>{variant ? <><div className="mt-5 flex items-center justify-between border-t border-black/10 pt-4"><div><p className="text-[10px] uppercase tracking-[.15em] text-black/40">{variant.size} {variant.unit} · {variant.flavor}</p><p className="mt-1 text-lg font-black tracking-[-.03em]">{currency.format(variant.price)}</p></div><Button onClick={() => onAdd(product, variant)} className="h-11 rounded-full bg-[#0a0a0a] px-5 text-[10px] font-black uppercase tracking-[.13em] text-white hover:bg-[#a2ff00] hover:text-black"><Plus size={15} /> Añadir</Button></div></> : <div className="mt-5 border-t border-black/10 pt-4 text-sm text-black/45">Presentación no disponible.</div>}</div>
+    <div className="p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-[.16em] text-black/40">{product.brand}</p><Link href={`/producto/${encodeURIComponent(product.id)}`}><h3 className="mt-2 font-display text-2xl font-black uppercase leading-[.94] tracking-[-.04em] hover:text-[#70a900]">{product.name}</h3></Link></div><Badge className="shrink-0 rounded-full bg-[#edffd0] text-[9px] font-black uppercase tracking-[.12em] text-[#547c00] hover:bg-[#edffd0]">Activo</Badge></div><p className="mt-4 line-clamp-2 min-h-10 text-sm leading-5 text-black/55">{product.description}</p><Link href={`/producto/${encodeURIComponent(product.id)}`} className="mt-4 text-[10px] font-black uppercase tracking-[.14em] text-black/45 hover:text-black">Ver detalle</Link>{variant ? <><div className="mt-5 flex items-center justify-between border-t border-black/10 pt-4"><div><p className="text-[10px] uppercase tracking-[.15em] text-black/40">{variant.size} {variant.unit} · {variant.flavor}</p><p className="mt-1 text-lg font-black tracking-[-.03em]">{currency.format(variant.price)}</p></div><Button onClick={() => onAdd(product, variant)} className="h-11 rounded-full bg-[#0a0a0a] px-5 text-[10px] font-black uppercase tracking-[.13em] text-white hover:bg-[#a2ff00] hover:text-black"><Plus size={15} /> Añadir</Button></div></> : <div className="mt-5 border-t border-black/10 pt-4 text-sm text-black/45">Presentación no disponible.</div>}</div>
   </article>;
 }
 function ProductSkeletons() { return <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((key) => <div key={key} className="h-[440px] animate-pulse rounded-[24px] bg-black/5" />)}</div>; }
