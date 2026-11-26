@@ -100,6 +100,12 @@ export const djangoApi = {
   async getAdminCategories() { return adminRequest<{ categories: AdminCategory[] }>("/api/admin/categories/"); },
   async getAdminInventory() { return adminRequest<{ inventory: AdminInventory[] }>("/api/admin/inventory/"); },
   async getAdminOrders() { return adminRequest<{ orders: AdminOrder[] }>("/api/admin/orders/"); },
+  async generateAdminInvoice(orderId: string) {
+    return adminRequest<{ id: string; number: string; total: number; status: string; internalDocument: boolean }>(`/api/admin/orders/${encodeURIComponent(orderId)}/invoice/`, { method: "POST", body: JSON.stringify({}) });
+  },
+  async sendAdminInvoice(orderId: string) {
+    return adminRequest<{ status: string; email: string }>(`/api/admin/orders/${encodeURIComponent(orderId)}/invoice/send/`, { method: "POST", body: JSON.stringify({}) });
+  },
   async createAdminCategory(payload: Record<string, unknown>) { return adminRequest("/api/admin/categories/", { method: "POST", body: JSON.stringify(payload) }); },
   async createAdminProduct(payload: Record<string, unknown>) { return adminRequest("/api/admin/products/", { method: "POST", body: JSON.stringify(payload) }); },
   async createAdminVariant(payload: Record<string, unknown>) { return adminRequest("/api/admin/variants/", { method: "POST", body: JSON.stringify(payload) }); },
