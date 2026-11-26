@@ -1,3 +1,5 @@
+import { debugLog } from "./debugLogger";
+
 export type ProductVariant = {
   id: string;
   sku: string;
@@ -34,11 +36,14 @@ export const djangoApi = {
   previewMode: import.meta.env.VITE_PREVIEW_MODE !== "false",
 
   async getCatalog(): Promise<CatalogResponse> {
+    debugLog("info", "Cargando catálogo", { endpoint: catalogEndpoint, configured: Boolean(baseUrl), previewMode: this.previewMode });
     if (!baseUrl) {
       if (this.previewMode) {
         return { products: previewProducts, source: "preview" };
       }
-      throw new Error("VITE_DJANGO_BASE_URL no está configurada.");
+      const error = new Error("VITE_DJANGO_BASE_URL no está configurada.");
+      debugLog("error", error.message);
+      throw error;
     }
 
     if (catalogEndpoint) {
@@ -46,6 +51,7 @@ export const djangoApi = {
         credentials: "include",
         headers: { Accept: "application/json" },
       });
+      debugLog(response.ok ? "success" : "error", "Respuesta del catálogo", { status: response.status, url: response.url });
       if (!response.ok) throw new Error(`El endpoint de catálogo respondió ${response.status}.`);
       const payload = await response.json();
       return { products: normalizeJsonCatalog(payload), source: "django-json" };
@@ -53,6 +59,7 @@ export const djangoApi = {
 
     // Compatibility adapter for the current repository, which serves catalogo.html at `/`.
     const response = await fetch(`${baseUrl}/`, { credentials: "include" });
+    debugLog(response.ok ? "success" : "error", "Respuesta del catálogo HTML", { status: response.status, url: response.url });
     if (!response.ok) throw new Error(`Django respondió ${response.status} al cargar el catálogo.`);
     const html = await response.text();
     const products = parseLegacyCatalog(html);
@@ -108,24 +115,41 @@ function joinUrl(origin: string, path: string) {
 
 async function ensureCsrf() {
   if (!baseUrl) return;
-  const response = await fetch(joinUrl(baseUrl, "/api/csrf/"), { credentials: "include" });
-  const payload = await response.json().catch(() => ({}));
-  csrfToken = payload.csrfToken ?? getCookie("csrftoken");
+  const url = joinUrl(baseUrl, "/api/csrf/");
+  try {
+    const response = await fetch(url, { credentials: "include" });
+    const payload = await response.json().catch(() => ({}));
+    csrfToken = payload.csrfToken ?? getCookie("csrftoken");
+    debugLog(response.ok ? "success" : "error", "Token CSRF solicitado", { status: response.status, tokenReceived: Boolean(csrfToken), url });
+    if (!response.ok) throw new Error(`CSRF respondió ${response.status}.`);
+  } catch (error) {
+    debugLog("error", "No se pudo solicitar el token CSRF", { url, error });
+    throw error;
+  }
 }
 
 async function requestJson<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(joinUrl(baseUrl, path), {
-    credentials: "include",
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init.method && init.method !== "GET" ? { "Content-Type": "application/json", "X-CSRFToken": csrfToken || getCookie("csrftoken") } : {}),
-      ...(init.headers ?? {}),
-    },
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.detail || `Django respondió ${response.status}.`);
-  return payload as T;
+  const method = init.method ?? "GET";
+  const url = joinUrl(baseUrl, path);
+  debugLog("info", "Solicitud API", { method, path, url });
+  try {
+    const response = await fetch(url, {
+      credentials: "include",
+      ...init,
+      headers: {
+        Accept: "application/json",
+        ...(init.method && init.method !== "GET" ? { "Content-Type": "application/json", "X-CSRFToken": csrfToken || getCookie("csrftoken") } : {}),
+        ...(init.headers ?? {}),
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    debugLog(response.ok ? "success" : "error", "Respuesta API", { method, path, status: response.status, detail: payload.detail });
+    if (!response.ok) throw new Error(payload.detail || `Django respondió ${response.status}.`);
+    return payload as T;
+  } catch (error) {
+    debugLog("error", "Error de red o API", { method, path, url, error });
+    throw error;
+  }
 }
 
 async function adminRequest<T = unknown>(path: string, init: RequestInit = {}) {

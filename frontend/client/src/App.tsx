@@ -6,6 +6,10 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/AdminDashboard";
+import DebugPanel from "./components/DebugPanel";
+import { installGlobalDebugHandlers } from "./lib/debugLogger";
+
+installGlobalDebugHandlers();
 
 function Router() {
   return (
@@ -25,6 +29,7 @@ export default function App() {
         <TooltipProvider>
           <Toaster position="top-right" />
           <Router />
+          <DebugPanel />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
