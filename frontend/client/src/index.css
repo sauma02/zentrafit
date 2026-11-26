@@ -80,7 +80,9 @@ button:not(:disabled), a[href] { cursor: pointer; }
   .brand-mark { @apply relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-[13px] bg-[#0a0a0a] text-[#a2ff00]; }
   .brand-mark::before { content: ''; @apply absolute -right-2 -top-2 h-7 w-7 rounded-full border-[5px] border-[#a2ff00]; }
   .brand-mark-z { @apply relative z-10 font-display text-xl font-black italic leading-none; }
-  .product-card { @apply overflow-hidden rounded-[24px] border border-black/10 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-black/25 hover:shadow-[0_20px_45px_rgba(10,10,10,.10)]; animation: rise-in .55s both; }
+  .product-card { @apply flex h-full flex-col overflow-hidden rounded-[24px] border border-black/10 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-black/25 hover:shadow-[0_20px_45px_rgba(10,10,10,.10)]; animation: rise-in .55s both; }
+  .product-card > .p-5 { @apply flex flex-1 flex-col; }
+  .product-card > .p-5 > .mt-5.flex { @apply mt-auto; }
   .product-art { @apply relative flex h-64 items-end overflow-hidden bg-[#161616] p-5 text-white; }
   .product-art-grid { @apply absolute inset-0 opacity-50; background-image: linear-gradient(rgba(162,255,0,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(162,255,0,.16) 1px, transparent 1px); background-size: 22px 22px; transform: perspective(300px) rotateX(58deg) scale(1.6) translateY(40px); transform-origin: center bottom; }
   .product-art::before { content: ''; @apply absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#a2ff00]/50; box-shadow: 0 0 0 18px rgba(162,255,0,.05), 0 0 0 38px rgba(162,255,0,.04); }
