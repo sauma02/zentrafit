@@ -1,89 +1,74 @@
-from datetime import date as Date
-from django.db import transaction
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
-from tienda.entidades.Usuario import Usuario
-from tienda.entidades.Carrito import Carrito
-from tienda.entidades.VarianteProducto import VarianteProducto
+from tienda.entidades import Carrito
 from tienda.entidades.identificadores import generar_id
 from tienda.servicios.ProductoServicio import ProductoServicio
-from tienda.servicios import UsuarioServicio
 
-class CarritoServicio():
-    
-    @transaction.atomic
+
+class CarritoServicio:
+    """Reglas de negocio del carrito por usuario o sesión."""
+
+    @staticmethod
+    def obtenerCarrito(sesionId):
+        if not sesionId:
+            raise ValidationError("Se requiere un ID de sesión para listar el carrito.")
+        return Carrito.objects.filter(sesionId=sesionId).select_related("varianteId", "varianteId__idProducto")
+
     @staticmethod
     def listarCarrito(sesionId):
-        try:
-            
-            if sesionId:
-                carrito = Carrito.objects.filter(sesionId=sesionId)
-            else:
-                raise ValidationError("Se requiere un ID de usuario o un ID de sesión para listar el carrito")
-            
-            if not carrito.exists():
-                raise ValidationError("El carrito esta vacio")
-            return carrito
-        except Exception as e:
-            print(f"Error al listar carrito: {e}")
+        if not sesionId:
             return None
+        carrito = CarritoServicio.obtenerCarrito(sesionId)
+        return carrito if carrito.exists() else None
 
-    @transaction.atomic
     @staticmethod
+    @transaction.atomic
     def agregarItem(usuarioId, varianteId, cantidad, sesionId=None):
         try:
-            if cantidad <= 0:
-                raise ValueError("La cantidad debe ser mayor a 0")
-            
-            # 1. Recuperar la instancia de la variante
-            variante_queryset = ProductoServicio.listarVarianteEspecifica(varianteId)
-            if hasattr(variante_queryset, 'exists') and not variante_queryset.exists():
-                raise ValidationError("La variante de producto no existe")
-                
-            varianteProducto = variante_queryset.first() if hasattr(variante_queryset, 'first') else variante_queryset
-            
-            # 2. Gestionar usuario (Soporta Invitados si viene None)
-            usuario = None
-            if usuarioId is not None and usuarioId != "":
-                try:
-                    user_res = UsuarioServicio.listarUsuarioEspecifico(usuarioId)
-                    usuario = user_res.first() if hasattr(user_res, 'first') else user_res
-                except Exception:
-                    raise ValidationError("El usuario no existe")
-            
-            # 3. Buscar ítem existente alineado a las propiedades físicas de Carrito.py
-            if usuario:
-                itemExistente = Carrito.objects.filter(usuarioId=usuario, varianteId=varianteProducto).first()
-            else:
-                if not sesionId:
-                    raise ValidationError("Se requiere un ID de sesión para usuarios no autenticados")
-                itemExistente = Carrito.objects.filter(usuarioId=usuario, sesionId=sesionId, varianteId=varianteProducto).first()
-            
-            # 4. Actualizar cantidad o Insertar nuevo registro físico en SQL
-            if itemExistente:
-                itemExistente.cantidad += cantidad
-                itemExistente.actualizadoEn = Date.today()
-                itemExistente.save()
-                print(f"📦 Cantidad actualizada en BD para el carrito {itemExistente.idCarrito}")
-                return itemExistente
-            else:
-                # Forzamos IDs combinados seguros
-                idCombinado = f"CRT##{generar_id()}"
-                idSesionFinal = sesionId if sesionId is not None else f"SES##{generar_id()}"
-                
-                # 🚀 USAMOS objects.create DIRECTO PARA PERSISTIR EN SQL INMEDIATAMENTE
-                nuevo_carrito = Carrito.objects.create(
-                    idCarrito=idCombinado,            # Nombre del atributo en tu Carrito.py
-                    usuarioId=usuario,                  # Instancia de Usuario o None
-                    sesionId=idSesionFinal,
-                    varianteId=varianteProducto,# Instancia de VarianteProducto
-                    cantidad=cantidad,
-                    fechaCreacion=Date.today(),            # Nombre del atributo en tu Carrito.py
-                    actualizadoEn=Date.today()
-                )
-                print(f"💾 ¡Registro insertado exitosamente en la Base de Datos con ID: {idCombinado}!")
-                return nuevo_carrito
-                
-        except Exception as e:
-            print(f"❌ Error crítico en agregarItem: {e}")
-            raise e
+            cantidad = int(cantidad)
+        except (TypeError, ValueError) as error:
+            raise ValidationError("La cantidad debe ser un entero.") from error
+        if cantidad <= 0:
+            raise ValidationError("La cantidad debe ser mayor que cero.")
+        variante = ProductoServicio.listarVarianteEspecifica(varianteId)
+        usuario = None
+        if usuarioId:
+            raise ValidationError("El carrito autenticado requiere el servicio de usuarios.")
+        if not sesionId:
+            raise ValidationError("Se requiere un ID de sesión para usuarios no autenticados.")
+        item = Carrito.objects.filter(usuarioId=usuario, sesionId=sesionId, varianteId=variante).first()
+        if item:
+            item.cantidad += cantidad
+            item.save(update_fields=["cantidad", "actualizadoEn"])
+            return item
+        return Carrito.objects.create(
+            idCarrito=f"CRT##{generar_id()}",
+            usuarioId=usuario,
+            sesionId=sesionId,
+            varianteId=variante,
+            cantidad=cantidad,
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def actualizarItem(sesionId, varianteId, cantidad):
+        try:
+            cantidad = int(cantidad)
+        except (TypeError, ValueError) as error:
+            raise ValidationError("La cantidad debe ser un entero.") from error
+        if cantidad < 1:
+            return CarritoServicio.eliminarItem(sesionId, varianteId)
+        item = Carrito.objects.get(sesionId=sesionId, varianteId_id=varianteId)
+        item.cantidad = cantidad
+        item.save(update_fields=["cantidad", "actualizadoEn"])
+        return item
+
+    @staticmethod
+    @transaction.atomic
+    def eliminarItem(sesionId, varianteId=None):
+        queryset = Carrito.objects.filter(sesionId=sesionId)
+        if varianteId:
+            queryset = queryset.filter(varianteId_id=varianteId)
+        queryset.delete()
+        return True

@@ -1,13 +1,15 @@
 import json
-from decimal import Decimal, InvalidOperation
-from uuid import uuid4
 
-from django.db import transaction
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from tienda.entidades import Categoria, DetallePedido, MovimientoInventario, Pedido, Producto, VarianteProducto
+from tienda.entidades import Categoria
+from tienda.servicios.AdministracionServicio import AdministracionServicio
+from tienda.servicios.CategoriaServicio import CategoriaServicio
+from tienda.servicios.InventarioServicio import InventarioServicio
+from tienda.servicios.ProductoServicio import ProductoServicio
 
 
 def _with_cors(request, response):
@@ -28,6 +30,7 @@ def _admin_only(view):
         if not request.user.is_authenticated or not request.user.is_staff:
             return _with_cors(request, JsonResponse({"detail": "Debes iniciar sesión como administrador."}, status=403))
         return _with_cors(request, view(request, *args, **kwargs))
+
     return wrapped
 
 
@@ -38,25 +41,60 @@ def _body(request):
         return None
 
 
-def _id(prefix):
-    return f"{prefix}##{uuid4().hex[:8]}"
-
-
 def _stock(variant):
-    movements = MovimientoInventario.objects.filter(varianteId=variant)
-    return sum((movement.cantidad if movement.tipo in {"entrada", "ajuste"} else -movement.cantidad for movement in movements), 0)
+    return InventarioServicio.calcularStock(variant)
 
 
 def _variant(variant):
-    return {"id": variant.varianteId, "sku": variant.sku, "flavor": variant.sabor, "size": variant.tamano, "unit": variant.unidadMedida, "price": float(variant.precio), "active": variant.activo, "stock": _stock(variant)}
+    return {
+        "id": variant.varianteId,
+        "sku": variant.sku,
+        "flavor": variant.sabor,
+        "size": variant.tamano,
+        "unit": variant.unidadMedida,
+        "price": float(variant.precio),
+        "active": variant.activo,
+        "stock": _stock(variant),
+    }
 
 
 def _product(product):
-    return {"id": product.idProducto, "name": product.nombre, "description": product.descripcion, "brand": product.marca, "active": product.activo, "categoryId": product.categoriaId_id, "category": product.categoriaId.nombre, "variants": [_variant(item) for item in product.variantes.all()]}
+    return {
+        "id": product.idProducto,
+        "name": product.nombre,
+        "description": product.descripcion,
+        "brand": product.marca,
+        "active": product.activo,
+        "categoryId": product.categoriaId_id,
+        "category": product.categoriaId.nombre,
+        "variants": [_variant(item) for item in product.variantes.all()],
+    }
+
+
+def _category(category):
+    return {
+        "id": category.categoriaId,
+        "name": category.nombre,
+        "description": category.descripcion,
+        "active": category.activa,
+    }
 
 
 def _order(order):
-    return {"id": order.idPedido, "number": order.numeroPedido, "customer": f"{order.nombreCliente} {order.apellidoCliente}", "email": order.emailContacto, "city": order.ciudadEntrega, "total": float(order.total), "status": "Completado" if order.estado else "Pendiente", "date": order.fechaPedido.isoformat(), "items": [{"name": detail.nombreProducto, "sku": detail.sku, "quantity": detail.cantidad, "subtotal": float(detail.subTotal)} for detail in order.detalles.all()]}
+    return {
+        "id": order.idPedido,
+        "number": order.numeroPedido,
+        "customer": f"{order.nombreCliente} {order.apellidoCliente}",
+        "email": order.emailContacto,
+        "city": order.ciudadEntrega,
+        "total": float(order.total),
+        "status": "Completado" if order.estado else "Pendiente",
+        "date": order.fechaPedido.isoformat(),
+        "items": [
+            {"name": detail.nombreProducto, "sku": detail.sku, "quantity": detail.cantidad, "subtotal": float(detail.subTotal)}
+            for detail in order.detalles.all()
+        ],
+    }
 
 
 @_admin_only
@@ -64,10 +102,18 @@ def _order(order):
 def overview(request):
     if request.method == "OPTIONS":
         return JsonResponse({})
-    products = list(Producto.objects.select_related("categoriaId").prefetch_related("variantes"))
-    variants = [variant for product in products for variant in product.variantes.all()]
-    orders = list(Pedido.objects.prefetch_related("detalles").order_by("-fechaPedido")[:8])
-    return JsonResponse({"metrics": {"products": len(products), "variants": len(variants), "categories": Categoria.objects.filter(activa=True).count(), "pendingOrders": Pedido.objects.filter(estado=False).count(), "revenue": float(sum((order.total for order in Pedido.objects.filter(estado=True)), Decimal("0")))}, "lowStock": [{"product": variant.idProducto.nombre, "sku": variant.sku, "stock": _stock(variant)} for variant in variants if _stock(variant) <= 5], "orders": [_order(order) for order in orders]})
+    summary = AdministracionServicio.resumen()
+    return JsonResponse({
+        "metrics": {
+            "products": len(summary["products"]),
+            "variants": len(summary["variants"]),
+            "categories": summary["categories"],
+            "pendingOrders": summary["pending_orders"],
+            "revenue": float(summary["revenue"]),
+        },
+        "lowStock": summary["low_stock"],
+        "orders": [_order(order) for order in summary["orders"]],
+    })
 
 
 @_admin_only
@@ -77,12 +123,15 @@ def categories(request):
     if request.method == "OPTIONS":
         return JsonResponse({})
     if request.method == "GET":
-        return JsonResponse({"categories": [{"id": item.categoriaId, "name": item.nombre, "description": item.descripcion, "active": item.activa} for item in Categoria.objects.order_by("nombre")]})
+        return JsonResponse({"categories": [_category(item) for item in CategoriaServicio.listaCategorias()]})
     data = _body(request)
-    if not data or not str(data.get("name", "")).strip():
-        return JsonResponse({"detail": "El nombre de categoría es obligatorio."}, status=400)
-    category = Categoria.objects.create(categoriaId=_id("CAT"), nombre=str(data["name"]).strip(), descripcion=str(data.get("description", "")).strip(), activa=bool(data.get("active", True)))
-    return JsonResponse({"id": category.categoriaId, "name": category.nombre}, status=201)
+    if not data:
+        return JsonResponse({"detail": "JSON inválido."}, status=400)
+    try:
+        category = CategoriaServicio.crearCategoria(data.get("name"), data.get("description", ""), data.get("active", True))
+    except ValidationError as error:
+        return JsonResponse({"detail": error.messages[0]}, status=400)
+    return JsonResponse(_category(category), status=201)
 
 
 @_admin_only
@@ -92,16 +141,25 @@ def products(request):
     if request.method == "OPTIONS":
         return JsonResponse({})
     if request.method == "GET":
-        return JsonResponse({"products": [_product(item) for item in Producto.objects.select_related("categoriaId").prefetch_related("variantes").order_by("-fechaCreacion")]})
+        return JsonResponse({"products": [_product(item) for item in ProductoServicio.mostrarTodosLosProductos()]})
     data = _body(request)
-    required = ["name", "categoryId", "brand"]
-    if not data or any(not str(data.get(field, "")).strip() for field in required):
-        return JsonResponse({"detail": "name, categoryId y brand son obligatorios."}, status=400)
+    if not data:
+        return JsonResponse({"detail": "JSON inválido."}, status=400)
     try:
-        category = Categoria.objects.get(categoriaId=data["categoryId"])
+        category = CategoriaServicio.buscarCategoria(data.get("categoryId"))
+        product = ProductoServicio.registrarProductoNuevo(
+            categoriaId=category,
+            nombre=data.get("name"),
+            descripcion=data.get("description", ""),
+            marca=data.get("brand"),
+            activo=data.get("active", True),
+        )
     except Categoria.DoesNotExist:
         return JsonResponse({"detail": "Categoría no encontrada."}, status=404)
-    product = Producto.objects.create(idProducto=_id("PROD"), categoriaId=category, nombre=str(data["name"]).strip(), descripcion=str(data.get("description", "")).strip(), marca=str(data["brand"]).strip(), activo=bool(data.get("active", True)))
+    except ValidationError as error:
+        return JsonResponse({"detail": error.messages[0]}, status=400)
+    except ObjectDoesNotExist:
+        return JsonResponse({"detail": "Categoría no encontrada."}, status=404)
     return JsonResponse(_product(product), status=201)
 
 
@@ -112,17 +170,22 @@ def variants(request):
     if request.method == "OPTIONS":
         return JsonResponse({})
     data = _body(request)
-    required = ["productId", "sku", "size", "unit", "price"]
-    if not data or any(not str(data.get(field, "")).strip() for field in required):
-        return JsonResponse({"detail": "productId, sku, size, unit y price son obligatorios."}, status=400)
+    if not data:
+        return JsonResponse({"detail": "JSON inválido."}, status=400)
     try:
-        product = Producto.objects.get(idProducto=data["productId"])
-        price = Decimal(str(data["price"]))
-    except (Producto.DoesNotExist, InvalidOperation):
-        return JsonResponse({"detail": "Producto o precio inválido."}, status=400)
-    if price < 0:
-        return JsonResponse({"detail": "El precio no puede ser negativo."}, status=400)
-    variant = VarianteProducto.objects.create(varianteId=_id("VAR"), idProducto=product, sku=str(data["sku"]).strip(), sabor=str(data.get("flavor", "Sin sabor")).strip(), tamano=str(data["size"]).strip(), unidadMedida=str(data["unit"]).strip(), precio=price, activo=bool(data.get("active", True)))
+        variant = ProductoServicio.nuevaVarianteDeProducto(
+            productoId=data.get("productId"),
+            sku=data.get("sku"),
+            sabor=data.get("flavor", "Sin sabor"),
+            tamano=data.get("size"),
+            unidadMedida=data.get("unit"),
+            precio=data.get("price"),
+            activo=data.get("active", True),
+        )
+    except ObjectDoesNotExist:
+        return JsonResponse({"detail": "Producto no encontrado."}, status=404)
+    except ValidationError as error:
+        return JsonResponse({"detail": error.messages[0]}, status=400)
     return JsonResponse(_variant(variant), status=201)
 
 
@@ -133,20 +196,24 @@ def inventory(request):
     if request.method == "OPTIONS":
         return JsonResponse({})
     if request.method == "GET":
-        variants = VarianteProducto.objects.select_related("idProducto").order_by("sku")
+        variants = InventarioServicio.listarVariantesConStock()
         return JsonResponse({"inventory": [{"variantId": item.varianteId, "product": item.idProducto.nombre, "sku": item.sku, "stock": _stock(item), "price": float(item.precio)} for item in variants]})
     data = _body(request)
-    if not data or not data.get("variantId") or data.get("type") not in {"entrada", "salida", "ajuste"}:
-        return JsonResponse({"detail": "variantId y type válido son obligatorios."}, status=400)
+    if not data:
+        return JsonResponse({"detail": "JSON inválido."}, status=400)
     try:
-        quantity = int(data.get("quantity", 0))
-        variant = VarianteProducto.objects.get(varianteId=data["variantId"])
-    except (ValueError, VarianteProducto.DoesNotExist):
-        return JsonResponse({"detail": "Variante o cantidad inválida."}, status=400)
-    if quantity <= 0:
-        return JsonResponse({"detail": "La cantidad debe ser mayor que cero."}, status=400)
-    movement = MovimientoInventario.objects.create(idMovimientoInventario=_id("MOV"), varianteId=variant, tipo=data["type"], cantidad=quantity, motivo=str(data.get("reason", "Ajuste administrativo"))[:100], observaciones=str(data.get("notes", "")))
-    return JsonResponse({"id": movement.idMovimientoInventario, "stock": _stock(variant)}, status=201)
+        movement = InventarioServicio.registrarMovimiento(
+            varianteId=data.get("variantId"),
+            tipo=data.get("type"),
+            cantidad=data.get("quantity", 0),
+            motivo=data.get("reason", "Ajuste administrativo"),
+            observaciones=data.get("notes", ""),
+        )
+    except ObjectDoesNotExist:
+        return JsonResponse({"detail": "Variante no encontrada."}, status=404)
+    except ValidationError as error:
+        return JsonResponse({"detail": error.messages[0]}, status=400)
+    return JsonResponse({"id": movement.idMovimientoInventario, "stock": _stock(movement.varianteId)}, status=201)
 
 
 @_admin_only
@@ -156,15 +223,12 @@ def orders(request):
     if request.method == "OPTIONS":
         return JsonResponse({})
     if request.method == "GET":
-        return JsonResponse({"orders": [_order(order) for order in Pedido.objects.prefetch_related("detalles").order_by("-fechaPedido")]})
+        return JsonResponse({"orders": [_order(order) for order in AdministracionServicio.listarPedidos()]})
     data = _body(request)
-    order_id = data.get("id") if data else None
-    if not order_id:
+    if not data or not data.get("id"):
         return JsonResponse({"detail": "id es obligatorio."}, status=400)
     try:
-        order = Pedido.objects.get(idPedido=order_id)
-    except Pedido.DoesNotExist:
+        order = AdministracionServicio.actualizarEstadoPedido(data["id"], str(data.get("status", "")).lower() in {"completado", "true", "1"})
+    except ObjectDoesNotExist:
         return JsonResponse({"detail": "Pedido no encontrado."}, status=404)
-    order.estado = str(data.get("status", "")).lower() in {"completado", "true", "1"}
-    order.save(update_fields=["estado"])
     return JsonResponse(_order(order))

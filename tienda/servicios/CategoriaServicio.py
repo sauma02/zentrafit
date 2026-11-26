@@ -1,62 +1,51 @@
-from tienda.entidades.Categoria import Categoria
-from tienda.entidades.identificadores import generar_id
-from django.db import IntegrityError, DataError, OperationalError
-from django.core.exceptions import (
-    NON_FIELD_ERRORS,
-    FieldDoesNotExist,
-    FieldError,
-    MultipleObjectsReturned,
-    ObjectDoesNotExist,
-    ObjectNotUpdated,
-    ValidationError,
-)
+from django.core.exceptions import ValidationError
+from django.db import transaction
 
-class CategoriaServicio():
+from tienda.entidades import Categoria
+from tienda.entidades.identificadores import generar_id
+
+
+class CategoriaServicio:
+    """Reglas de negocio para categorías."""
+
     @staticmethod
     def listaCategorias():
-        try:
-            listaCategorias = Categoria.objects.all()
-            if not listaCategorias.exists():
-                raise ValidationError("La lista esta vacia")
-            return listaCategorias
-        except IntegrityError as e:
-            print(f"Error fatal(Funcion listaCategorias): {e}")
+        return Categoria.objects.order_by("nombre")
 
     @staticmethod
-    def crearCategoria(nombre, descripcion):
-        try:
-            idCombinado = f"CT##{generar_id}"
-            categoriaNueva=Categoria(categoriaId=idCombinado, nombre=nombre, descripcion=descripcion)
-            categoriaNueva.full_clean()
-            categoriaNueva.save()
-            return categoriaNueva
-        except ValidationError as e:
-            print(f"Error critico, uno o mas campos estan vacios: {e}")
-        except IntegrityError as e:
-                    print(f"Error Fatal(Registrar Categoria): {e}")    
+    def buscarCategoria(categoriaId):
+        return Categoria.objects.get(categoriaId=categoriaId)
 
     @staticmethod
-    def actualizarCategoria(categoriaId, nombre, descripcion, activo):
-        try:
-            categoriaActualizada=Categoria.objects.get(categoriaId=categoriaId)
-            categoriaActualizada.nombre = nombre
-            categoriaActualizada.descripcion= descripcion
-            categoriaActualizada.activo=activo
-            categoriaActualizada.save()
-            return categoriaActualizada
-        except ObjectDoesNotExist as e:
-            print(f"El producto no existe o no pudo ser encontrad para actualizar: {e}")
-        except IntegrityError as e:
-                    print(f"Error Fatal(Actualizar Categoria): {e}")
+    @transaction.atomic
+    def crearCategoria(nombre, descripcion="", activa=True):
+        nombre = str(nombre or "").strip()
+        if not nombre:
+            raise ValidationError("El nombre de categoría es obligatorio.")
+        categoria = Categoria(
+            categoriaId=f"CAT##{generar_id()}",
+            nombre=nombre,
+            descripcion=str(descripcion or "").strip(),
+            activa=bool(activa),
+        )
+        categoria.full_clean()
+        categoria.save()
+        return categoria
+
     @staticmethod
+    @transaction.atomic
+    def actualizarCategoria(categoriaId, nombre, descripcion, activa=True):
+        categoria = CategoriaServicio.buscarCategoria(categoriaId)
+        categoria.nombre = str(nombre or "").strip()
+        categoria.descripcion = str(descripcion or "").strip()
+        categoria.activa = bool(activa)
+        categoria.full_clean()
+        categoria.save()
+        return categoria
+
+    @staticmethod
+    @transaction.atomic
     def eliminarCategoria(categoriaId):
-        try:
-            categoriaEliminada=Categoria.objects.get(categoriaId=categoriaId)
-            categoriaEliminada.delete()
-            print("Producto eliminado con exito")
-        except ObjectDoesNotExist as e:
-            print(f"El producto a elimnar no existe: {e}")
-        except IntegrityError as e:
-            print(f"Error Fatal(Eliminar Categoria): {e}")
-
-    
+        categoria = CategoriaServicio.buscarCategoria(categoriaId)
+        categoria.delete()
+        return True
